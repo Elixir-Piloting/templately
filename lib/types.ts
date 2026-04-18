@@ -13,25 +13,68 @@ export interface StyleValue {
   unit: 'px' | '%' | 'em' | 'rem';
 }
 
+export interface SpacingValue {
+  top: StyleValue;
+  right: StyleValue;
+  bottom: StyleValue;
+  left: StyleValue;
+  linked: boolean;
+}
+
+export type WidthOption = 'custom' | 'full' | 'fit';
+export type HeightOption = 'custom' | 'full' | 'fit' | 'auto';
+export type LayoutMode = 'flex' | 'grid' | 'block';
+
 export interface ElementStyles {
   fontSize?: StyleValue;
   fontWeight?: number;
   color?: string;
   textAlign?: 'left' | 'center' | 'right' | 'justify';
   backgroundColor?: string;
-  padding?: StyleValue;
-  margin?: StyleValue;
+  
+  padding?: SpacingValue;
+  margin?: SpacingValue;
+  
   borderWidth?: StyleValue;
   borderColor?: string;
   borderRadius?: StyleValue;
+  borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted';
+  
   opacity?: number;
   lineHeight?: number;
+  
+  width?: StyleValue;
+  widthOption?: WidthOption;
+  height?: StyleValue;
+  heightOption?: HeightOption;
+  maxWidth?: StyleValue;
+  minWidth?: StyleValue;
+  minHeight?: StyleValue;
+  maxHeight?: StyleValue;
+  
+  display?: LayoutMode;
+  flexDirection?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
+  flexWrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
+  justifyContent?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
+  alignItems?: 'flex-start' | 'center' | 'flex-end' | 'stretch' | 'baseline';
+  alignContent?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
   flexGrow?: number;
   flexShrink?: number;
-  minHeight?: StyleValue;
-  width?: StyleValue;
-  height?: StyleValue;
-  maxWidth?: StyleValue;
+  flexBasis?: StyleValue;
+  
+  gridTemplateColumns?: string;
+  gridTemplateRows?: string;
+  gridColumnGap?: StyleValue;
+  gridRowGap?: StyleValue;
+  gridColumn?: string;
+  gridRow?: string;
+  
+  gap?: StyleValue;
+  
+  separatorWeight?: StyleValue;
+  separatorLength?: StyleValue;
+  separatorOrientation?: 'horizontal' | 'vertical';
+  separatorColor?: string;
 }
 
 export interface PageConfig {
@@ -63,6 +106,26 @@ export interface Template {
 
 function createStyleValue(value: number, unit: StyleValue['unit'] = 'px'): StyleValue {
   return { value, unit };
+}
+
+function createLinkedSpacing(value: number, unit: StyleValue['unit'] = 'px', linked = true): SpacingValue {
+  return {
+    top: { value, unit },
+    right: { value, unit },
+    bottom: { value, unit },
+    left: { value, unit },
+    linked,
+  };
+}
+
+function createUnlinkedSpacing(top: number, right: number, bottom: number, left: number, unit: StyleValue['unit'] = 'px'): SpacingValue {
+  return {
+    top: { value: top, unit },
+    right: { value: right, unit },
+    bottom: { value: bottom, unit },
+    left: { value: left, unit },
+    linked: false,
+  };
 }
 
 export function createDefaultPage(): PageConfig {
@@ -110,6 +173,11 @@ export function createElement(type: ElementType): TemplateElement {
           fontWeight: 700,
           color: '#000000',
           textAlign: 'left',
+          widthOption: 'fit',
+          heightOption: 'auto',
+          display: 'block',
+          margin: createLinkedSpacing(0),
+          padding: createLinkedSpacing(0),
         },
       };
     case 'paragraph':
@@ -122,6 +190,11 @@ export function createElement(type: ElementType): TemplateElement {
           color: '#333333',
           textAlign: 'left',
           lineHeight: 1.6,
+          widthOption: 'full',
+          heightOption: 'auto',
+          display: 'block',
+          margin: createLinkedSpacing(0),
+          padding: createLinkedSpacing(0),
         },
       };
     case 'separator':
@@ -130,8 +203,14 @@ export function createElement(type: ElementType): TemplateElement {
         content: '',
         styles: {
           backgroundColor: '#000000',
-          borderWidth: createStyleValue(0),
-          minHeight: createStyleValue(1),
+          separatorWeight: createStyleValue(2),
+          separatorLength: createStyleValue(100),
+          separatorOrientation: 'horizontal',
+          separatorColor: '#000000',
+          widthOption: 'full',
+          display: 'flex',
+          margin: createLinkedSpacing(8),
+          padding: createLinkedSpacing(0),
         },
       };
     case 'div':
@@ -144,7 +223,14 @@ export function createElement(type: ElementType): TemplateElement {
           borderWidth: createStyleValue(1),
           borderColor: '#cccccc',
           borderRadius: createStyleValue(4),
+          borderStyle: 'solid',
           minHeight: createStyleValue(50),
+          widthOption: 'full',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: createStyleValue(8),
+          margin: createLinkedSpacing(0),
+          padding: createLinkedSpacing(8),
         },
       };
     default:

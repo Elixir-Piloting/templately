@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InputWithUnit } from './InputWithUnit';
+import { InputWithSpacing } from './InputWithSpacing';
+import { DimensionsInput } from './DimensionsInput';
+import { LayoutControls } from './LayoutControls';
 import { Layout, Type, Minus, Square, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 
 function findElementById(elements: any[], id: string): any {
@@ -96,6 +99,7 @@ export function ElementSidebar() {
             <TabsTrigger value="content" className="data-[state=active]:bg-accent">Content</TabsTrigger>
             <TabsTrigger value="style" className="data-[state=active]:bg-accent">Style</TabsTrigger>
             <TabsTrigger value="layout" className="data-[state=active]:bg-accent">Layout</TabsTrigger>
+            <TabsTrigger value="size" className="data-[state=active]:bg-accent">Size</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 overflow-auto p-4">
@@ -192,26 +196,61 @@ export function ElementSidebar() {
                       />
                     </div>
                   )}
+                  <InputWithSpacing
+                    label="Margin"
+                    value={selectedElement.styles.margin}
+                    onChange={(v) => handleStyleChange('margin', v)}
+                  />
+                  <InputWithSpacing
+                    label="Padding"
+                    value={selectedElement.styles.padding}
+                    onChange={(v) => handleStyleChange('padding', v)}
+                  />
                 </>
               )}
+
               {selectedElement.type === 'separator' && (
-                <div className="space-y-2">
-                  <Label>Color</Label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={selectedElement.styles.backgroundColor || '#000000'}
-                      onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                      className="h-9 w-14 rounded border border-input p-1"
-                    />
-                    <Input
-                      value={selectedElement.styles.backgroundColor || '#000000'}
-                      onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                      className="flex-1"
-                    />
+                <>
+                  <div className="space-y-2">
+                    <Label>Orientation</Label>
+                    <Select
+                      value={selectedElement.styles.separatorOrientation || 'horizontal'}
+                      onValueChange={(v) => handleStyleChange('separatorOrientation', v)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="horizontal">Horizontal</SelectItem>
+                        <SelectItem value="vertical">Vertical</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
+                  <div className="space-y-2">
+                    <Label>Weight (Thickness)</Label>
+                    <InputWithUnit value={selectedElement.styles.separatorWeight} onChange={(v) => handleStyleChange('separatorWeight', v)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Length</Label>
+                    <InputWithUnit value={selectedElement.styles.separatorLength} onChange={(v) => handleStyleChange('separatorLength', v)} units={['px', '%', 'em', 'rem']} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Color</Label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={selectedElement.styles.separatorColor || '#000000'}
+                        onChange={(e) => handleStyleChange('separatorColor', e.target.value)}
+                        className="h-9 w-14 rounded border border-input p-1"
+                      />
+                      <Input
+                        value={selectedElement.styles.separatorColor || '#000000'}
+                        onChange={(e) => handleStyleChange('separatorColor', e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </>
               )}
+
               {selectedElement.type === 'div' && (
                 <>
                   <div className="space-y-2">
@@ -229,6 +268,21 @@ export function ElementSidebar() {
                         className="flex-1"
                       />
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Border Style</Label>
+                    <Select
+                      value={selectedElement.styles.borderStyle || 'solid'}
+                      onValueChange={(v) => handleStyleChange('borderStyle', v)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="solid">Solid</SelectItem>
+                        <SelectItem value="dashed">Dashed</SelectItem>
+                        <SelectItem value="dotted">Dotted</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Border Width</Label>
@@ -254,46 +308,56 @@ export function ElementSidebar() {
                     <Label>Border Radius</Label>
                     <InputWithUnit value={selectedElement.styles.borderRadius} onChange={(v) => handleStyleChange('borderRadius', v)} />
                   </div>
+                  <InputWithSpacing
+                    label="Margin"
+                    value={selectedElement.styles.margin}
+                    onChange={(v) => handleStyleChange('margin', v)}
+                  />
+                  <InputWithSpacing
+                    label="Padding"
+                    value={selectedElement.styles.padding}
+                    onChange={(v) => handleStyleChange('padding', v)}
+                  />
                 </>
               )}
             </TabsContent>
 
             <TabsContent value="layout" className="space-y-4 mt-0">
-              {selectedElement.type === 'div' && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Width</Label>
-                    <InputWithUnit value={selectedElement.styles.width} onChange={(v) => handleStyleChange('width', v)} units={['px', '%', 'em', 'rem']} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Height</Label>
-                    <InputWithUnit value={selectedElement.styles.height} onChange={(v) => handleStyleChange('height', v)} units={['px', '%', 'em', 'rem']} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Min Height</Label>
-                    <InputWithUnit value={selectedElement.styles.minHeight} onChange={(v) => handleStyleChange('minHeight', v)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Padding</Label>
-                    <InputWithUnit value={selectedElement.styles.padding} onChange={(v) => handleStyleChange('padding', v)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Margin</Label>
-                    <InputWithUnit value={selectedElement.styles.margin} onChange={(v) => handleStyleChange('margin', v)} />
-                  </div>
-                </>
+              {selectedElement.type === 'div' ? (
+                <LayoutControls
+                  display={selectedElement.styles.display}
+                  onDisplayChange={(v) => handleStyleChange('display', v)}
+                  flexDirection={selectedElement.styles.flexDirection}
+                  onFlexDirectionChange={(v) => handleStyleChange('flexDirection', v)}
+                  flexWrap={selectedElement.styles.flexWrap}
+                  onFlexWrapChange={(v) => handleStyleChange('flexWrap', v)}
+                  justifyContent={selectedElement.styles.justifyContent}
+                  onJustifyContentChange={(v) => handleStyleChange('justifyContent', v)}
+                  alignItems={selectedElement.styles.alignItems}
+                  onAlignItemsChange={(v) => handleStyleChange('alignItems', v)}
+                  gap={selectedElement.styles.gap}
+                  onGapChange={(v) => handleStyleChange('gap', v)}
+                  gridTemplateColumns={selectedElement.styles.gridTemplateColumns}
+                  onGridColumnsChange={(v) => handleStyleChange('gridTemplateColumns', v)}
+                  gridTemplateRows={selectedElement.styles.gridTemplateRows}
+                  onGridRowsChange={(v) => handleStyleChange('gridTemplateRows', v)}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">Layout options only available for Div containers</p>
               )}
-              {(selectedElement.type === 'header' || selectedElement.type === 'paragraph') && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Width</Label>
-                    <InputWithUnit value={selectedElement.styles.width} onChange={(v) => handleStyleChange('width', v)} units={['px', '%', 'em', 'rem']} />
-                  </div>
-                </>
-              )}
-              {selectedElement.type === 'separator' && (
-                <p className="text-sm text-muted-foreground">Separator has no layout options</p>
-              )}
+            </TabsContent>
+
+            <TabsContent value="size" className="space-y-4 mt-0">
+              <DimensionsInput
+                width={selectedElement.styles.width}
+                widthOption={selectedElement.styles.widthOption}
+                onWidthChange={(v) => handleStyleChange('width', v)}
+                onWidthOptionChange={(v) => handleStyleChange('widthOption', v)}
+                height={selectedElement.styles.height}
+                heightOption={selectedElement.styles.heightOption}
+                onHeightChange={(v) => handleStyleChange('height', v)}
+                onHeightOptionChange={(v) => handleStyleChange('heightOption', v)}
+              />
             </TabsContent>
           </div>
         </Tabs>

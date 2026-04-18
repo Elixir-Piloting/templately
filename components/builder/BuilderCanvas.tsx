@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { useBuilderStore } from '@/lib/store';
-import { TemplateElement, StyleValue, ElementType } from '@/lib/types';
+import { TemplateElement, StyleValue, SpacingValue, ElementType } from '@/lib/types';
 import { GripVertical } from 'lucide-react';
 
 function styleValueToString(value: StyleValue | undefined): string {
@@ -12,6 +12,15 @@ function styleValueToString(value: StyleValue | undefined): string {
 
 function styleValueToNumber(value: StyleValue | undefined): number {
   return value?.value ?? 0;
+}
+
+function spacingToString(value: SpacingValue | undefined): string {
+  if (!value) return '';
+  const top = value.top ? `${value.top.value}${value.top.unit}` : '0';
+  const right = value.right ? `${value.right.value}${value.right.unit}` : '0';
+  const bottom = value.bottom ? `${value.bottom.value}${value.bottom.unit}` : '0';
+  const left = value.left ? `${value.left.value}${value.left.unit}` : '0';
+  return `${top} ${right} ${bottom} ${left}`;
 }
 
 export function BuilderCanvas() {
@@ -143,7 +152,7 @@ export function BuilderCanvas() {
     [addElement, moveElementToIndex, template.elements.length, setDraggingElement, setDropTarget]
   );
 
-  const renderElement = (element: TemplateElement, index: number): React.ReactNode => {
+  const renderElement = (element: TemplateElement, _index?: number): React.ReactNode => {
     const isSelected = element.id === selectedElementId;
     const isHovered = element.id === hoveredElementId;
     const isDragging = element.id === draggingElementId;
@@ -153,7 +162,7 @@ export function BuilderCanvas() {
     const showDropAfter = isDropTarget && dragOverPosition === 'after' && element.type !== 'div';
     const showDropInside = isDropTarget && dragOverPosition === 'inside' && element.type === 'div';
 
-    const baseStyle: React.CSSProperties = {
+    let baseStyle: React.CSSProperties = {
       display: 'flex',
       boxSizing: 'border-box',
       fontSize: element.styles.fontSize ? styleValueToString(element.styles.fontSize) : undefined,
@@ -165,7 +174,7 @@ export function BuilderCanvas() {
       lineHeight: element.styles.lineHeight,
       flexGrow: element.styles.flexGrow,
       flexShrink: element.styles.flexShrink,
-      margin: element.styles.margin ? styleValueToString(element.styles.margin) : undefined,
+      margin: spacingToString(element.styles.margin),
     };
 
     let content: React.ReactNode = null;
@@ -202,8 +211,8 @@ export function BuilderCanvas() {
             borderColor: element.styles.borderColor || '#ccc',
             borderRadius: element.styles.borderRadius ? styleValueToString(element.styles.borderRadius) : '4px',
             minHeight: element.styles.minHeight ? styleValueToString(element.styles.minHeight) : '50px',
-            padding: element.styles.padding ? styleValueToString(element.styles.padding) : undefined,
-            margin: element.styles.margin ? styleValueToString(element.styles.margin) : undefined,
+            padding: spacingToString(element.styles.padding),
+margin: spacingToString(element.styles.margin),
             flexDirection: 'column',
             display: 'flex',
           }}
