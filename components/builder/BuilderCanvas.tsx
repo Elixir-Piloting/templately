@@ -419,6 +419,13 @@ export function BuilderCanvas() {
               )}
             </div>
           )}
+          
+          {element.type === 'image' && elementRegistry.image?.render(element)}
+          {element.type === 'button' && elementRegistry.button?.render(element)}
+          {element.type === 'spacer' && elementRegistry.spacer?.render(element)}
+          {element.type === 'code' && elementRegistry.code?.render(element)}
+          {element.type === 'list' && elementRegistry.list?.render(element)}
+          {element.type === 'badge' && elementRegistry.badge?.render(element)}
         </div>
         
         {showDropAfter && (
