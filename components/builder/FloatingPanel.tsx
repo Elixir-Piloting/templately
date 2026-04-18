@@ -262,14 +262,14 @@ export function ElementHierarchy() {
             e.stopPropagation();
             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
             const relY = (e.clientY - rect.top) / rect.height;
-            const relX = (e.clientX - rect.left) / rect.width;
             
-            // Strict center zone only (30-70% for both X and Y)
-            if (canBeDropTarget && relX > 0.3 && relX < 0.7 && relY > 0.3 && relY < 0.7) {
+            // 25% from top = inside zone starts, 75% = inside zone ends
+            if (canBeDropTarget && relY >= 0.25 && relY <= 0.75) {
               handleDragOver(e, element.id, 'inside');
+            } else if (relY < 0.25) {
+              handleDragOver(e, element.id, 'before');
             } else {
-              const position = relY <= 0.5 ? 'before' : 'after';
-              handleDragOver(e, element.id, position);
+              handleDragOver(e, element.id, 'after');
             }
           }}
           onDrop={(e) => {
@@ -277,13 +277,13 @@ export function ElementHierarchy() {
             e.stopPropagation();
             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
             const relY = (e.clientY - rect.top) / rect.height;
-            const relX = (e.clientX - rect.left) / rect.width;
             
-            if (canBeDropTarget && relX > 0.3 && relX < 0.7 && relY > 0.3 && relY < 0.7) {
+            if (canBeDropTarget && relY >= 0.25 && relY <= 0.75) {
               handleDrop(e, element.id, 'inside');
+            } else if (relY < 0.25) {
+              handleDrop(e, element.id, 'before');
             } else {
-              const position = relY <= 0.5 ? 'before' : 'after';
-              handleDrop(e, element.id, position);
+              handleDrop(e, element.id, 'after');
             }
           }}
         >

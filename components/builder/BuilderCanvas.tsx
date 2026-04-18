@@ -2,9 +2,37 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { useBuilderStore } from '@/lib/store';
-import { TemplateElement, StyleValue, SpacingValue, ElementType, WidthOption, HeightOption, LayoutMode } from '@/lib/types';
+import { TemplateElement, StyleValue, SpacingValue, ElementType } from '@/lib/types';
 import { elementRegistry } from '@/lib/elements';
 import { GripVertical } from 'lucide-react';
+
+interface DropZone {
+  targetId: string;
+  position: 'before' | 'after' | 'inside';
+}
+
+const DROP_THRESHOLDS = {
+  insideMin: 0.25,  // 25% from top = start of inside zone
+  insideMax: 0.75,  // 75% from top = end of inside zone
+};
+
+function calculateDropZone(
+  e: React.DragEvent,
+  elementRect: DOMRect,
+  isContainer: boolean
+): DropZone | null {
+  const relY = (e.clientY - elementRect.top) / elementRect.height;
+  
+  if (isContainer && relY >= DROP_THRESHOLDS.insideMin && relY <= DROP_THRESHOLDS.insideMax) {
+    return { targetId: '', position: 'inside' };
+  }
+  
+  if (relY < DROP_THRESHOLDS.insideMin) {
+    return { targetId: '', position: 'before' };
+  }
+  
+  return { targetId: '', position: 'after' };
+}
 
 function styleValueToString(value: StyleValue | undefined, fallback = 'auto'): string {
   if (!value) return fallback;
@@ -44,6 +72,8 @@ function getHeightStyle(styles: any): string | undefined {
   }
   return undefined;
 }
+
+export { DROP_THRESHOLDS, calculateDropZone };
 
 export function BuilderCanvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -94,7 +124,7 @@ export function BuilderCanvas() {
     setDraggingElement(null);
     setDropTarget(null);
     setDragOverPosition(null);
-  }, [setDraggingElement, setDropTarget]);
+  }, [setDraggingElement, setDropTarget, setDragOverPosition]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent, targetId: string | null, position: 'before' | 'after' | 'inside') => {
@@ -127,48 +157,8 @@ export function BuilderCanvas() {
       setDropTarget(null);
       setDragOverPosition(null);
     },
-    [addElement, moveElementInto, moveElementToIndex, template.elements, setDraggingElement, setDropTarget]
+    [addElement, moveElementInto, moveElementToIndex, template.elements, setDraggingElement, setDropTarget, setDragOverPosition]
   );
-
-  const handleInnerDragOver = useCallback((e: React.DragEvent, elementId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const relX = x / rect.width;
-    const relY = y / rect.height;
-    
-    // Very strict center zone only (35-65%)
-    if (relX > 0.35 && relX < 0.65 && relY > 0.35 && relY < 0.65) {
-      setDropTarget(elementId);
-      setDragOverPosition('inside');
-      setIsDragOver(true);
-    } else {
-      // We're in the margin zone - clear target
-      setDropTarget(null);
-      setDragOverPosition(null);
-    }
-  }, [setDropTarget]);
-
-  const handleInnerDragLeave = useCallback((e: React.DragEvent) => {
-    // Only clear if we're actually leaving the container, not entering a child
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
-      setDragOverPosition(null);
-      setDropTarget(null);
-    }
-  }, [setDropTarget]);
-
-  const handleDragOver = useCallback((e: React.DragEvent, elementId: string, position: 'before' | 'after' | 'inside') => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDropTarget(elementId);
-    setDragOverPosition(position);
-    setIsDragOver(true);
-  }, [setDropTarget]);
 
   const handleCanvasDrop = useCallback(
     (e: React.DragEvent) => {
@@ -184,32 +174,65 @@ export function BuilderCanvas() {
       setIsDragOver(false);
       setDraggingElement(null);
       setDropTarget(null);
+      setDragOverPosition(null);
     },
-    [addElement, moveElementToIndex, template.elements.length, setDraggingElement, setDropTarget]
+    [addElement, moveElementToIndex, template.elements.length, setDraggingElement, setDropTarget, setDragOverPosition]
   );
 
-  const renderElementContent = (element: TemplateElement): React.ReactNode => {
-    const config = elementRegistry[element.type];
-    if (config?.render) {
-      return config.render(element);
+  const handleElementDragOver = useCallback((e: React.DragEvent, elementId: string, isContainer: boolean) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const relY = (e.clientY - rect.top) / rect.height;
+    
+    let position: 'before' | 'after' | 'inside';
+    
+    if (isContainer && relY >= DROP_THRESHOLDS.insideMin && relY <= DROP_THRESHOLDS.insideMax) {
+      position = 'inside';
+    } else if (relY < DROP_THRESHOLDS.insideMin) {
+      position = 'before';
+    } else {
+      position = 'after';
     }
-    return null;
-  };
+    
+    setDropTarget(elementId);
+    setDragOverPosition(position);
+    setIsDragOver(true);
+  }, [setDropTarget, setDragOverPosition]);
 
-  const renderElement = (element: TemplateElement, isInside: boolean = false): React.ReactNode => {
+  const handleElementDrop = useCallback((e: React.DragEvent, elementId: string, isContainer: boolean) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const relY = (e.clientY - rect.top) / rect.height;
+    
+    let position: 'before' | 'after' | 'inside';
+    
+    if (isContainer && relY >= DROP_THRESHOLDS.insideMin && relY <= DROP_THRESHOLDS.insideMax) {
+      position = 'inside';
+    } else if (relY < DROP_THRESHOLDS.insideMin) {
+      position = 'before';
+    } else {
+      position = 'after';
+    }
+    
+    handleDrop(e, elementId, position);
+  }, [handleDrop]);
+
+  const renderElement = (element: TemplateElement): React.ReactNode => {
     const isSelected = element.id === selectedElementId;
     const isHovered = element.id === hoveredElementId;
     const isDragging = element.id === draggingElementId;
     const isDropTarget = element.id === dropTargetId;
-    const config = elementRegistry[element.type];
+    const isContainer = element.type === 'div';
 
     const showDropBefore = isDropTarget && dragOverPosition === 'before';
     const showDropAfter = isDropTarget && dragOverPosition === 'after';
     const showDropInside = isDropTarget && dragOverPosition === 'inside';
 
     let elementStyle: React.CSSProperties = {};
-    let children: React.ReactNode = null;
-    let innerContainerStyle: React.CSSProperties = {};
 
     if (element.type === 'header') {
       elementStyle = {
@@ -222,7 +245,6 @@ export function BuilderCanvas() {
         textAlign: element.styles.textAlign,
         margin: spacingToString(element.styles.margin),
       };
-      children = <span>{element.content}</span>;
     } else if (element.type === 'paragraph') {
       elementStyle = {
         display: 'block',
@@ -236,7 +258,6 @@ export function BuilderCanvas() {
         wordBreak: 'break-word',
         margin: spacingToString(element.styles.margin),
       };
-      children = <span>{element.content}</span>;
     } else if (element.type === 'separator') {
       const isVertical = element.styles.separatorOrientation === 'vertical';
       const isFull = element.styles.separatorLengthOption === 'full' || !element.styles.separatorLengthOption;
@@ -251,7 +272,6 @@ export function BuilderCanvas() {
         margin: spacingToString(element.styles.margin),
       };
       elementStyle[isVertical ? 'width' : 'height'] = styleValueToString(element.styles.separatorWeight, '2px');
-      children = null;
     } else if (element.type === 'div') {
       const display = element.styles.display || 'flex';
       const flexDir = element.styles.flexDirection || 'column';
@@ -282,70 +302,6 @@ export function BuilderCanvas() {
         elementStyle.gridColumnGap = element.styles.gridColumnGap ? styleValueToString(element.styles.gridColumnGap) : '8px';
         elementStyle.gridRowGap = element.styles.gridRowGap ? styleValueToString(element.styles.gridRowGap) : '8px';
       }
-
-      innerContainerStyle = {
-        display,
-        flexDirection: flexDir,
-        flexWrap: element.styles.flexWrap || 'nowrap',
-        justifyContent: element.styles.justifyContent || 'flex-start',
-        alignItems: element.styles.alignItems || 'stretch',
-        gap: element.styles.gap ? styleValueToString(element.styles.gap, '0') : '8px',
-        padding: '4px',
-        minHeight: '50px',
-      };
-
-      children = (
-        <div
-          className="flex-1 container"
-          style={innerContainerStyle}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            const relX = (e.clientX - rect.left) / rect.width;
-            const relY = (e.clientY - rect.top) / rect.height;
-            
-            // Only accept drop in strict center (35-65%)
-            if (relX > 0.35 && relX < 0.65 && relY > 0.35 && relY < 0.65) {
-              setDropTarget(element.id);
-              setDragOverPosition('inside');
-              setIsDragOver(true);
-            } else {
-              setDropTarget(null);
-              setDragOverPosition(null);
-            }
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            const relX = (e.clientX - rect.left) / rect.width;
-            const relY = (e.clientY - rect.top) / rect.height;
-            
-            // Only allow drop in strict center
-            if (relX > 0.35 && relX < 0.65 && relY > 0.35 && relY < 0.65) {
-              handleDrop(e, element.id, 'inside');
-            }
-          }}
-          onDragLeave={(e) => {
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
-              setDropTarget(null);
-              setDragOverPosition(null);
-            }
-          }}
-        >
-          {element.children && element.children.length > 0 ? (
-            element.children.map(child => renderElement(child, true))
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs border-2 border-dashed border-muted-foreground/20 rounded">
-              Drop here
-            </div>
-          )}
-        </div>
-      );
     }
 
     return (
@@ -353,8 +309,8 @@ export function BuilderCanvas() {
         {showDropBefore && (
           <div 
             className="absolute -top-1 left-0 right-0 h-1 bg-blue-500 z-10"
-            onDragOver={(e) => handleDragOver(e, element.id, 'before')}
-            onDrop={(e) => handleDrop(e, element.id, 'before')}
+            onDragOver={(e) => { e.preventDefault(); setDropTarget(element.id); setDragOverPosition('before'); }}
+            onDrop={(e) => { e.preventDefault(); handleDrop(e, element.id, 'before'); }}
           />
         )}
         
@@ -365,51 +321,8 @@ export function BuilderCanvas() {
           draggable
           onDragStart={(e) => handleDragStart(e, element.id)}
           onDragEnd={handleDragEnd}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            const relY = (e.clientY - rect.top) / rect.height;
-            
-            if (element.type === 'div') {
-              // For divs: 30-70% Y = inside, <30% = before, >70% = after
-              if (relY > 0.3 && relY < 0.7) {
-                // Show inside indicator
-                setDropTarget(element.id);
-                setDragOverPosition('inside');
-                setIsDragOver(true);
-              } else {
-                const position = relY <= 0.3 ? 'before' : 'after';
-                setDropTarget(element.id);
-                setDragOverPosition(position);
-                setIsDragOver(true);
-              }
-            } else {
-              // For non-divs: <50% = before, >50% = after
-              const position = relY <= 0.5 ? 'before' : 'after';
-              setDropTarget(element.id);
-              setDragOverPosition(position);
-              setIsDragOver(true);
-            }
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            const relY = (e.clientY - rect.top) / rect.height;
-            
-            if (element.type === 'div') {
-              if (relY > 0.3 && relY < 0.7) {
-                handleDrop(e, element.id, 'inside');
-              } else {
-                const position = relY <= 0.3 ? 'before' : 'after';
-                handleDrop(e, element.id, position);
-              }
-            } else {
-              const position = relY <= 0.5 ? 'before' : 'after';
-              handleDrop(e, element.id, position);
-            }
-          }}
+          onDragOver={(e) => handleElementDragOver(e, element.id, isContainer)}
+          onDrop={(e) => handleElementDrop(e, element.id, isContainer)}
           style={elementStyle}
           className={`relative cursor-pointer transition-all ${
             isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : isHovered ? 'ring-2 ring-blue-300 ring-offset-1' : ''
@@ -420,14 +333,28 @@ export function BuilderCanvas() {
               <GripVertical className="h-4 w-4 text-muted-foreground" />
             </div>
           )}
-          {children}
+          
+          {element.type === 'header' && <span>{element.content}</span>}
+          {element.type === 'paragraph' && <span>{element.content}</span>}
+          {element.type === 'separator' && null}
+          {element.type === 'div' && (
+            <div className="flex-1 p-1 min-h-[50px]">
+              {element.children && element.children.length > 0 ? (
+                element.children.map(child => renderElement(child))
+              ) : (
+                <div className="flex items-center justify-center text-muted-foreground text-xs border-2 border-dashed border-muted-foreground/20 rounded h-full">
+                  Drop here
+                </div>
+              )}
+            </div>
+          )}
         </div>
         
         {showDropAfter && (
           <div 
             className="absolute -bottom-1 left-0 right-0 h-1 bg-blue-500 z-10"
-            onDragOver={(e) => handleDragOver(e, element.id, 'after')}
-            onDrop={(e) => handleDrop(e, element.id, 'after')}
+            onDragOver={(e) => { e.preventDefault(); setDropTarget(element.id); setDragOverPosition('after'); }}
+            onDrop={(e) => { e.preventDefault(); handleDrop(e, element.id, 'after'); }}
           />
         )}
       </div>
