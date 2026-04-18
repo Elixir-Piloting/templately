@@ -254,9 +254,6 @@ export function ElementHierarchy() {
           }}
           onMouseEnter={() => setHoveredElement(element.id)}
           onMouseLeave={() => setHoveredElement(null)}
-          draggable
-          onDragStart={(e) => handleDragStart(e, element.id)}
-          onDragEnd={handleDragEnd}
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -287,19 +284,27 @@ export function ElementHierarchy() {
             }
           }}
         >
-          {element.type === 'div' ? (
-            <button
-              className="p-0.5 hover:bg-muted-foreground/20 rounded shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleExpanded(element.id);
-              }}
-            >
-              {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-            </button>
-          ) : (
-            <span className="w-4 shrink-0" />
-          )}
+          <div
+            className="p-0.5 hover:bg-muted-foreground/20 rounded shrink-0 cursor-grab"
+            draggable
+            onDragStart={(e) => handleDragStart(e, element.id)}
+            onDragEnd={handleDragEnd}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {element.type === 'div' ? (
+              <button
+                className="pointer-events-none"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleExpanded(element.id);
+                }}
+              >
+                {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              </button>
+            ) : (
+              <GripVertical className="h-3 w-3" />
+            )}
+          </div>
           <span className="capitalize truncate">{element.type}</span>
           <span className="ml-auto text-xs opacity-60 truncate max-w-[60px]">
             {element.content?.slice(0, 15) || element.id.slice(0, 6)}

@@ -318,9 +318,6 @@ export function BuilderCanvas() {
           onClick={(e) => handleElementClick(e, element.id)}
           onMouseEnter={() => setHoveredElement(element.id)}
           onMouseLeave={() => setHoveredElement(null)}
-          draggable
-          onDragStart={(e) => handleDragStart(e, element.id)}
-          onDragEnd={handleDragEnd}
           onDragOver={(e) => handleElementDragOver(e, element.id, isContainer)}
           onDrop={(e) => handleElementDrop(e, element.id, isContainer)}
           style={elementStyle}
@@ -329,7 +326,12 @@ export function BuilderCanvas() {
           } ${isDragging ? 'opacity-50' : ''} ${showDropInside ? 'ring-2 ring-blue-500 ring-inset bg-blue-500/5' : ''}`}
         >
           {(isHovered || isSelected) && (
-            <div className="absolute -left-6 top-1/2 -translate-y-1/2 p-1 cursor-grab hover:bg-muted rounded z-10">
+            <div 
+              className="absolute -left-6 top-1/2 -translate-y-1/2 p-1 cursor-grab hover:bg-muted rounded z-10"
+              draggable
+              onDragStart={(e) => handleDragStart(e, element.id)}
+              onDragEnd={handleDragEnd}
+            >
               <GripVertical className="h-4 w-4 text-muted-foreground" />
             </div>
           )}
