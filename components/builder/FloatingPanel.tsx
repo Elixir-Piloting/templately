@@ -304,15 +304,11 @@ export function ElementHierarchy() {
           }}
         >
           <div
-            className="p-0.5 hover:bg-muted-foreground/20 rounded shrink-0 cursor-grab"
-            draggable
-            onDragStart={(e) => handleDragStart(e, element.id)}
-            onDragEnd={handleDragEnd}
-            onClick={(e) => e.stopPropagation()}
+            className="p-0.5 hover:bg-muted-foreground/20 rounded shrink-0 cursor-pointer"
           >
             {element.type === 'div' ? (
               <button
-                className="pointer-events-none"
+                className="pointer-events-auto"
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleExpanded(element.id);
@@ -321,7 +317,14 @@ export function ElementHierarchy() {
                 {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               </button>
             ) : (
-              <GripVertical className="h-3 w-3" />
+              <div 
+                className="cursor-grab"
+                draggable
+                onDragStart={(e) => handleDragStart(e, element.id)}
+                onDragEnd={handleDragEnd}
+              >
+                <GripVertical className="h-3 w-3" />
+              </div>
             )}
           </div>
           <span className="capitalize truncate">{element.type}</span>
