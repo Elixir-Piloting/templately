@@ -1,6 +1,6 @@
 'use client';
 
-import { ElementType, TemplateElement } from '@/lib/types';
+import { ElementType } from '@/lib/types';
 import { useBuilderStore } from '@/lib/store';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InputWithUnit } from './InputWithUnit';
 import { Layout, Type, Minus, Square, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+
+function findElementById(elements: any[], id: string): any {
+  for (const el of elements) {
+    if (el.id === id) return el;
+    if (el.children) {
+      const found = findElementById(el.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 const ELEMENT_ICONS: Record<ElementType, React.ReactNode> = {
   header: <Type className="h-4 w-4" />,
