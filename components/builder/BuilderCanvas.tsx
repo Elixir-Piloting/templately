@@ -112,7 +112,7 @@ export function BuilderCanvas() {
         if (targetId && position === 'inside') {
           moveElementInto(draggedId, targetId);
         } else if (targetId) {
-          const targetIndex = template.elements.findIndex(el => el.id === targetId);
+          const targetIndex = findElementIndex(template.elements, targetId);
           const newIndex = position === 'before' ? targetIndex : targetIndex + 1;
           moveElementToIndex(draggedId, newIndex, null);
         } else {
@@ -128,14 +128,6 @@ export function BuilderCanvas() {
     [addElement, moveElementInto, moveElementToIndex, template.elements, setDraggingElement, setDropTarget]
   );
 
-  const handleDragOver = useCallback((e: React.DragEvent, elementId: string, position: 'before' | 'after' | 'inside') => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDropTarget(elementId);
-    setDragOverPosition(position);
-    setIsDragOver(true);
-  }, [setDropTarget]);
-
   const handleInnerDragOver = useCallback((e: React.DragEvent, elementId: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -144,11 +136,18 @@ export function BuilderCanvas() {
     setIsDragOver(true);
   }, [setDropTarget]);
 
-  const handleDragLeave = useCallback(() => {
-    if (!draggingElementId) {
-      setIsDragOver(false);
-    }
-  }, [draggingElementId]);
+  const handleInnerDragLeave = useCallback(() => {
+    setDragOverPosition(null);
+    setDropTarget(null);
+  }, [setDropTarget]);
+
+  const handleDragOver = useCallback((e: React.DragEvent, elementId: string, position: 'before' | 'after' | 'inside') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDropTarget(elementId);
+    setDragOverPosition(position);
+    setIsDragOver(true);
+  }, [setDropTarget]);
 
   const handleCanvasDrop = useCallback(
     (e: React.DragEvent) => {
@@ -168,21 +167,23 @@ export function BuilderCanvas() {
     [addElement, moveElementToIndex, template.elements.length, setDraggingElement, setDropTarget]
   );
 
-  const renderElement = (element: TemplateElement): React.ReactNode => {
+  const renderElement = (element: TemplateElement, isInside: boolean = false): React.ReactNode => {
     const isSelected = element.id === selectedElementId;
     const isHovered = element.id === hoveredElementId;
     const isDragging = element.id === draggingElementId;
     const isDropTarget = element.id === dropTargetId;
 
-    const showDropBefore = isDropTarget && dragOverPosition === 'before' && element.type !== 'div';
-    const showDropAfter = isDropTarget && dragOverPosition === 'after' && element.type !== 'div';
-    const showDropInside = isDropTarget && dragOverPosition === 'inside' && element.type === 'div';
+    const showDropBefore = isDropTarget && dragOverPosition === 'before';
+    const showDropAfter = isDropTarget && dragOverPosition === 'after';
+    const showDropInside = isDropTarget && dragOverPosition === 'inside';
 
     let elementStyle: React.CSSProperties = {};
     let children: React.ReactNode = null;
+    let innerContainerStyle: React.CSSProperties = {};
 
     if (element.type === 'header') {
       elementStyle = {
+        display: 'block',
         width: getWidthStyle(element.styles),
         height: getHeightStyle(element.styles),
         fontSize: element.styles.fontSize ? styleValueToString(element.styles.fontSize) : undefined,
@@ -194,6 +195,7 @@ export function BuilderCanvas() {
       children = <span>{element.content}</span>;
     } else if (element.type === 'paragraph') {
       elementStyle = {
+        display: 'block',
         width: getWidthStyle(element.styles),
         height: getHeightStyle(element.styles),
         fontSize: element.styles.fontSize ? styleValueToString(element.styles.fontSize) : undefined,
@@ -208,18 +210,22 @@ export function BuilderCanvas() {
     } else if (element.type === 'separator') {
       const isVertical = element.styles.separatorOrientation === 'vertical';
       elementStyle = {
-        width: isVertical ? styleValueToString(element.styles.separatorWeight, '2px') : getWidthStyle(element.styles),
-        height: isVertical ? getWidthStyle(element.styles) : styleValueToString(element.styles.separatorWeight, '2px'),
-        minWidth: isVertical ? undefined : '1px',
-        minHeight: isVertical ? '1px' : undefined,
+        display: isVertical ? 'inline-block' : 'block',
+        width: isVertical ? undefined : (getWidthStyle(element.styles) || '100%'),
+        height: isVertical ? '100%' : undefined,
+        minWidth: isVertical ? '1px' : undefined,
+        minHeight: isVertical ? undefined : '1px',
         backgroundColor: element.styles.separatorColor || '#000',
         margin: spacingToString(element.styles.margin),
       };
+      elementStyle[isVertical ? 'width' : 'height'] = styleValueToString(element.styles.separatorWeight, '2px');
       children = null;
     } else if (element.type === 'div') {
       const display = element.styles.display || 'flex';
+      const flexDir = element.styles.flexDirection || 'column';
       
       elementStyle = {
+        display,
         width: getWidthStyle(element.styles),
         height: getHeightStyle(element.styles),
         backgroundColor: element.styles.backgroundColor === 'transparent' ? 'transparent' : element.styles.backgroundColor,
@@ -227,26 +233,52 @@ export function BuilderCanvas() {
         borderStyle: element.styles.borderStyle || 'solid',
         borderColor: element.styles.borderColor || '#ccc',
         borderRadius: element.styles.borderRadius ? styleValueToString(element.styles.borderRadius) : '4px',
-        display,
-        flexDirection: element.styles.flexDirection || 'column',
-        flexWrap: element.styles.flexWrap || 'nowrap',
-        justifyContent: element.styles.justifyContent || 'flex-start',
-        alignItems: element.styles.alignItems || 'stretch',
-        gap: element.styles.gap ? styleValueToString(element.styles.gap, '0') : '8px',
-        gridTemplateColumns: element.styles.gridTemplateColumns,
-        gridTemplateRows: element.styles.gridTemplateRows,
         padding: spacingToString(element.styles.padding),
         margin: spacingToString(element.styles.margin),
         minHeight: element.styles.minHeight ? styleValueToString(element.styles.minHeight, '50px') : '50px',
       };
-      
+
+      if (display === 'flex') {
+        elementStyle.flexDirection = flexDir;
+        elementStyle.flexWrap = element.styles.flexWrap || 'nowrap';
+        elementStyle.justifyContent = element.styles.justifyContent || 'flex-start';
+        elementStyle.alignItems = element.styles.alignItems || 'stretch';
+        elementStyle.gap = element.styles.gap ? styleValueToString(element.styles.gap, '0') : '8px';
+      } else if (display === 'grid') {
+        const cols = element.styles.gridColumns || 2;
+        elementStyle.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        elementStyle.gridColumnGap = element.styles.gridColumnGap ? styleValueToString(element.styles.gridColumnGap) : '8px';
+        elementStyle.gridRowGap = element.styles.gridRowGap ? styleValueToString(element.styles.gridRowGap) : '8px';
+      }
+
+      innerContainerStyle = {
+        display,
+        flexDirection: flexDir,
+        flexWrap: element.styles.flexWrap || 'nowrap',
+        justifyContent: element.styles.justifyContent || 'flex-start',
+        alignItems: element.styles.alignItems || 'stretch',
+        gap: element.styles.gap ? styleValueToString(element.styles.gap, '0') : '8px',
+        padding: '4px',
+        minHeight: '50px',
+      };
+
       children = (
-        <div className="flex flex-col gap-2 p-1">
+        <div
+          className="flex-1 container"
+          style={innerContainerStyle}
+          onDragOver={(e) => handleInnerDragOver(e, element.id)}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDrop(e, element.id, 'inside');
+          }}
+          onDragLeave={handleInnerDragLeave}
+        >
           {element.children && element.children.length > 0 ? (
-            element.children.map(child => renderElement(child))
+            element.children.map(child => renderElement(child, true))
           ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs border-2 border-dashed border-muted-foreground/20 rounded m-1">
-              Drop elements here
+            <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs border-2 border-dashed border-muted-foreground/20 rounded">
+              Drop here
             </div>
           )}
         </div>
@@ -273,9 +305,11 @@ export function BuilderCanvas() {
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (element.type === 'div') {
+            if (element.type === 'div' && isInside) {
+              handleInnerDragOver(e, element.id);
+            } else if (element.type === 'div') {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const midY = rect.top + rect.height * 0.25;
+              const midY = rect.top + rect.height * 0.3;
               const position = e.clientY < midY ? 'before' : 'after';
               handleDragOver(e, element.id, position);
             } else {
@@ -287,7 +321,7 @@ export function BuilderCanvas() {
             e.stopPropagation();
             if (element.type === 'div') {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const midY = rect.top + rect.height * 0.25;
+              const midY = rect.top + rect.height * 0.3;
               const position = e.clientY < midY ? 'before' : 'after';
               handleDrop(e, element.id, position);
             } else {
@@ -328,7 +362,6 @@ export function BuilderCanvas() {
           e.preventDefault();
           setIsDragOver(true);
         }}
-        onDragLeave={handleDragLeave}
         className={`bg-white shadow-lg transition-all ${
           isDragOver && !dropTargetId ? 'ring-2 ring-primary ring-offset-2' : ''
         }`}
@@ -345,9 +378,7 @@ export function BuilderCanvas() {
             justifyContent: template.layout.justifyContent,
             alignItems: template.layout.alignItems,
             gap: template.layout.gap ? styleValueToString(template.layout.gap) : '16px',
-            margin: 0,
             minHeight: '100%',
-            boxSizing: 'border-box',
             marginTop: template.page.margins.top,
             marginBottom: template.page.margins.bottom,
             marginLeft: template.page.margins.left,
@@ -359,4 +390,8 @@ export function BuilderCanvas() {
       </div>
     </div>
   );
+}
+
+function findElementIndex(elements: TemplateElement[], id: string): number {
+  return elements.findIndex(el => el.id === id);
 }
