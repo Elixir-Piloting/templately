@@ -1,7 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
-import { Template, TemplateElement, createDefaultTemplate, createElement, ElementType } from '@/lib/types';
+import { Template, TemplateElement, createDefaultTemplate, ElementType } from '@/lib/types';
+import { createElement } from './createElement';
 
 interface BuilderState {
   template: Template;

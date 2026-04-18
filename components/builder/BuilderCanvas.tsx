@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback } from 'react';
 import { useBuilderStore } from '@/lib/store';
 import { TemplateElement, StyleValue, SpacingValue, ElementType, WidthOption, HeightOption, LayoutMode } from '@/lib/types';
+import { elementRegistry } from '@/lib/elements';
 import { GripVertical } from 'lucide-react';
 
 function styleValueToString(value: StyleValue | undefined, fallback = 'auto'): string {
@@ -167,11 +168,20 @@ export function BuilderCanvas() {
     [addElement, moveElementToIndex, template.elements.length, setDraggingElement, setDropTarget]
   );
 
+  const renderElementContent = (element: TemplateElement): React.ReactNode => {
+    const config = elementRegistry[element.type];
+    if (config?.render) {
+      return config.render(element);
+    }
+    return null;
+  };
+
   const renderElement = (element: TemplateElement, isInside: boolean = false): React.ReactNode => {
     const isSelected = element.id === selectedElementId;
     const isHovered = element.id === hoveredElementId;
     const isDragging = element.id === draggingElementId;
     const isDropTarget = element.id === dropTargetId;
+    const config = elementRegistry[element.type];
 
     const showDropBefore = isDropTarget && dragOverPosition === 'before';
     const showDropAfter = isDropTarget && dragOverPosition === 'after';

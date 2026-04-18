@@ -62,7 +62,7 @@ export interface ElementStyles {
   flexShrink?: number;
   flexBasis?: StyleValue;
   
-gridTemplateColumns?: string;
+  gridTemplateColumns?: string;
   gridTemplateRows?: string;
   gridColumnGap?: StyleValue;
   gridRowGap?: StyleValue;
@@ -103,11 +103,11 @@ export interface Template {
   updatedAt?: string;
 }
 
-function createStyleValue(value: number, unit: StyleValue['unit'] = 'px'): StyleValue {
+export function createStyleValue(value: number, unit: StyleValue['unit'] = 'px'): StyleValue {
   return { value, unit };
 }
 
-function createLinkedSpacing(value: number, unit: StyleValue['unit'] = 'px', linked = true): SpacingValue {
+export function createLinkedSpacing(value: number, unit: StyleValue['unit'] = 'px', linked = true): SpacingValue {
   return {
     top: { value, unit },
     right: { value, unit },
@@ -117,7 +117,7 @@ function createLinkedSpacing(value: number, unit: StyleValue['unit'] = 'px', lin
   };
 }
 
-function createUnlinkedSpacing(top: number, right: number, bottom: number, left: number, unit: StyleValue['unit'] = 'px'): SpacingValue {
+export function createUnlinkedSpacing(top: number, right: number, bottom: number, left: number, unit: StyleValue['unit'] = 'px'): SpacingValue {
   return {
     top: { value: top, unit },
     right: { value: right, unit },
@@ -153,86 +153,4 @@ export function createDefaultTemplate(): Template {
       padding: createStyleValue(0),
     },
   };
-}
-
-export function createElement(type: ElementType): TemplateElement {
-  const baseElement: TemplateElement = {
-    id: crypto.randomUUID(),
-    type,
-    styles: {},
-  };
-
-  switch (type) {
-    case 'header':
-      return {
-        ...baseElement,
-        content: 'Header Text',
-        styles: {
-          fontSize: createStyleValue(24),
-          fontWeight: 700,
-          color: '#000000',
-          textAlign: 'left',
-          widthOption: 'fit',
-          heightOption: 'auto',
-          display: 'block',
-          margin: createLinkedSpacing(0),
-          padding: createLinkedSpacing(0),
-        },
-      };
-    case 'paragraph':
-      return {
-        ...baseElement,
-        content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-        styles: {
-          fontSize: createStyleValue(14),
-          fontWeight: 400,
-          color: '#333333',
-          textAlign: 'left',
-          lineHeight: 1.6,
-          widthOption: 'full',
-          heightOption: 'auto',
-          display: 'block',
-          margin: createLinkedSpacing(0),
-          padding: createLinkedSpacing(0),
-        },
-      };
-    case 'separator':
-      return {
-        ...baseElement,
-        content: '',
-        styles: {
-          backgroundColor: '#000000',
-          separatorWeight: createStyleValue(2),
-          separatorLength: createStyleValue(100),
-          separatorOrientation: 'horizontal',
-          separatorColor: '#000000',
-          widthOption: 'full',
-          display: 'flex',
-          margin: createLinkedSpacing(8),
-          padding: createLinkedSpacing(0),
-        },
-      };
-    case 'div':
-      return {
-        ...baseElement,
-        content: '',
-        children: [],
-        styles: {
-          backgroundColor: 'transparent',
-          borderWidth: createStyleValue(1),
-          borderColor: '#cccccc',
-          borderRadius: createStyleValue(4),
-          borderStyle: 'solid',
-          minHeight: createStyleValue(50),
-          widthOption: 'full',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: createStyleValue(8),
-          margin: createLinkedSpacing(0),
-          padding: createLinkedSpacing(8),
-        },
-      };
-    default:
-      return baseElement;
-  }
 }
