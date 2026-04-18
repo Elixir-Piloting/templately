@@ -399,7 +399,17 @@ export function BuilderCanvas() {
           {element.type === 'paragraph' && <span>{element.content}</span>}
           {element.type === 'separator' && null}
           {element.type === 'div' && (
-            <div className="flex-1 p-1 min-h-[50px]">
+            <div 
+              className="flex-1 p-1 min-h-[50px]"
+              style={{
+                display: element.styles.display || 'flex',
+                flexDirection: element.styles.flexDirection || 'column',
+                flexWrap: element.styles.flexWrap || 'nowrap',
+                justifyContent: element.styles.justifyContent || 'flex-start',
+                alignItems: element.styles.alignItems || 'stretch',
+                gap: element.styles.gap ? styleValueToString(element.styles.gap, '0') : '8px',
+              }}
+            >
               {element.children && element.children.length > 0 ? (
                 element.children.map(child => renderElement(child))
               ) : (
