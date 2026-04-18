@@ -1,14 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { ElementType } from '@/lib/types';
+import { ElementType, TemplateElement } from '@/lib/types';
 import { useBuilderStore } from '@/lib/store';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InputWithUnit } from './InputWithUnit';
-import { Settings, Layout, Type, Minus, Square, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Layout, Type, Minus, Square, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 
 const ELEMENT_ICONS: Record<ElementType, React.ReactNode> = {
   header: <Type className="h-4 w-4" />,
@@ -25,8 +24,8 @@ const ELEMENTS: { type: ElementType; label: string }[] = [
 ];
 
 export function ElementSidebar() {
-  const { template, selectedElementId, updateElement, deleteElement, moveElement, updateLayout, addElement } = useBuilderStore();
-  const selectedElement = template.elements.find((el) => el.id === selectedElementId);
+  const { template, selectedElementId, updateElement, deleteElement, moveElement, addElement } = useBuilderStore();
+  const selectedElement = selectedElementId ? findElementById(template.elements, selectedElementId) : null;
 
   const handleDragStart = (e: React.DragEvent, type: ElementType) => {
     e.dataTransfer.setData('element-type', type);

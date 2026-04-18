@@ -329,7 +329,7 @@ export function BuilderCanvas() {
             marginRight: template.page.margins.right,
           }}
         >
-          {template.elements.map((element, index) => renderElement(element, index))}
+          {template.elements.map((element) => renderElement(element))}
         </div>
       </div>
     </div>

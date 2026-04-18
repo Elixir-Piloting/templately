@@ -118,7 +118,13 @@ export function FloatingPanel({ children }: FloatingPanelProps) {
   );
 }
 
+function findElementIndex(elements: TemplateElement[], id: string): number {
+  return elements.findIndex(el => el.id === id);
+}
+
 export function ElementHierarchy() {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  
   const { 
     template, 
     selectedElementId, 
@@ -133,6 +139,18 @@ export function ElementHierarchy() {
     dropTargetId,
     setDropTarget
   } = useBuilderStore();
+
+  const toggleExpanded = useCallback((id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   const handleDragStart = useCallback((e: React.DragEvent, elementId: string) => {
     e.dataTransfer.setData('element-id', elementId);
@@ -170,7 +188,7 @@ export function ElementHierarchy() {
     setDropTarget(null);
   }, [moveElementInto, moveElementToIndex, template.elements, setDraggingElement, setDropTarget]);
 
-  const handleDragOver = useCallback((e: React.DragEvent, elementId: string, position: 'before' | 'after' | 'inside') => {
+  const handleDragOver = useCallback((e: React.DragEvent, elementId: string, _position: 'before' | 'after' | 'inside') => {
     e.preventDefault();
     e.stopPropagation();
     setDropTarget(elementId);
@@ -181,16 +199,17 @@ export function ElementHierarchy() {
     const isHovered = element.id === hoveredElementId;
     const isDragging = element.id === draggingElementId;
     const isDropTarget = element.id === dropTargetId;
+    const isExpanded = expandedIds.has(element.id);
     const hasChildren = element.type === 'div' && element.children && element.children.length > 0;
     const canBeDropTarget = element.type === 'div';
 
     return (
-      <div key={element.id} className="relative">
+      <div key={element.id}>
         <div
-          className={`flex items-center gap-1 px-2 py-1.5 cursor-pointer text-sm rounded-sm transition-colors ${
+          className={`flex items-center gap-1 px-1 py-1 cursor-pointer text-sm rounded-sm transition-colors ${
             isSelected ? 'bg-primary text-primary-foreground' : isHovered ? 'bg-muted' : ''
           } ${isDropTarget ? 'ring-2 ring-blue-500' : ''} ${isDragging ? 'opacity-50' : ''}`}
-          style={{ paddingLeft: `${depth * 16 + 8}px` }}
+          style={{ paddingLeft: `${depth * 12 + 4}px` }}
           onClick={(e) => {
             e.stopPropagation();
             selectElement(element.id);
@@ -225,22 +244,25 @@ export function ElementHierarchy() {
             }
           }}
         >
-          {element.type === 'div' && (
+          {element.type === 'div' ? (
             <button
-              className="p-0.5 hover:bg-muted-foreground/20 rounded"
+              className="p-0.5 hover:bg-muted-foreground/20 rounded shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
+                toggleExpanded(element.id);
               }}
             >
-              {hasChildren ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             </button>
+          ) : (
+            <span className="w-4 shrink-0" />
           )}
-          <span className="capitalize">{element.type}</span>
-          <span className="ml-auto text-xs opacity-60 truncate max-w-[80px]">
-            {element.content?.slice(0, 20) || element.id.slice(0, 8)}
+          <span className="capitalize truncate">{element.type}</span>
+          <span className="ml-auto text-xs opacity-60 truncate max-w-[60px]">
+            {element.content?.slice(0, 15) || element.id.slice(0, 6)}
           </span>
         </div>
-        {hasChildren && (
+        {hasChildren && isExpanded && (
           <div>
             {element.children!.map((child) => renderElement(child, depth + 1))}
           </div>
@@ -250,8 +272,8 @@ export function ElementHierarchy() {
   };
 
   return (
-    <div className="p-2">
-      <div className="flex items-center justify-between mb-2 px-2">
+    <div className="p-1">
+      <div className="flex items-center justify-between mb-1 px-1">
         <span className="text-xs font-medium text-muted-foreground">Structure</span>
         <div className="flex gap-1">
           <button
@@ -287,8 +309,4 @@ export function ElementHierarchy() {
       )}
     </div>
   );
-}
-
-function findElementIndex(elements: TemplateElement[], id: string): number {
-  return elements.findIndex(el => el.id === id);
 }
