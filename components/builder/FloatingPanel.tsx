@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useBuilderStore } from '@/lib/store';
 import { TemplateElement } from '@/lib/types';
 import { ChevronRight, ChevronDown, GripVertical } from 'lucide-react';
@@ -119,19 +119,77 @@ export function FloatingPanel({ children }: FloatingPanelProps) {
 }
 
 export function ElementHierarchy() {
-  const { template, selectedElementId, selectElement, hoveredElementId, setHoveredElement, moveElement } = useBuilderStore();
+  const { 
+    template, 
+    selectedElementId, 
+    selectElement, 
+    hoveredElementId, 
+    setHoveredElement, 
+    moveElement,
+    moveElementInto,
+    moveElementToIndex,
+    draggingElementId,
+    setDraggingElement,
+    dropTargetId,
+    setDropTarget
+  } = useBuilderStore();
+
+  const handleDragStart = useCallback((e: React.DragEvent, elementId: string) => {
+    e.dataTransfer.setData('element-id', elementId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingElement(elementId);
+  }, [setDraggingElement]);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingElement(null);
+    setDropTarget(null);
+  }, [setDraggingElement, setDropTarget]);
+
+  const handleDrop = useCallback((e: React.DragEvent, targetId: string | null, position: 'before' | 'after' | 'inside') => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const draggedId = e.dataTransfer.getData('element-id');
+    if (!draggedId || draggedId === targetId) {
+      setDraggingElement(null);
+      setDropTarget(null);
+      return;
+    }
+
+    if (targetId && position === 'inside') {
+      moveElementInto(draggedId, targetId);
+    } else if (targetId) {
+      const targetIndex = findElementIndex(template.elements, targetId);
+      const newIndex = position === 'before' ? targetIndex : targetIndex + 1;
+      moveElementToIndex(draggedId, newIndex, null);
+    } else {
+      moveElementToIndex(draggedId, template.elements.length, null);
+    }
+
+    setDraggingElement(null);
+    setDropTarget(null);
+  }, [moveElementInto, moveElementToIndex, template.elements, setDraggingElement, setDropTarget]);
+
+  const handleDragOver = useCallback((e: React.DragEvent, elementId: string, position: 'before' | 'after' | 'inside') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDropTarget(elementId);
+  }, [setDropTarget]);
 
   const renderElement = (element: TemplateElement, depth: number = 0): React.ReactNode => {
     const isSelected = element.id === selectedElementId;
     const isHovered = element.id === hoveredElementId;
+    const isDragging = element.id === draggingElementId;
+    const isDropTarget = element.id === dropTargetId;
     const hasChildren = element.type === 'div' && element.children && element.children.length > 0;
+    const canBeDropTarget = element.type === 'div';
 
     return (
-      <div key={element.id}>
+      <div key={element.id} className="relative">
         <div
           className={`flex items-center gap-1 px-2 py-1.5 cursor-pointer text-sm rounded-sm transition-colors ${
             isSelected ? 'bg-primary text-primary-foreground' : isHovered ? 'bg-muted' : ''
-          }`}
+          } ${isDropTarget ? 'ring-2 ring-blue-500' : ''} ${isDragging ? 'opacity-50' : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={(e) => {
             e.stopPropagation();
@@ -140,8 +198,31 @@ export function ElementHierarchy() {
           onMouseEnter={() => setHoveredElement(element.id)}
           onMouseLeave={() => setHoveredElement(null)}
           draggable
-          onDragStart={(e) => {
-            e.dataTransfer.setData('element-id', element.id);
+          onDragStart={(e) => handleDragStart(e, element.id)}
+          onDragEnd={handleDragEnd}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (canBeDropTarget) {
+              handleDragOver(e, element.id, 'inside');
+            } else {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              const midY = rect.top + rect.height / 2;
+              const position = e.clientY < midY ? 'before' : 'after';
+              handleDragOver(e, element.id, position);
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (canBeDropTarget) {
+              handleDrop(e, element.id, 'inside');
+            } else {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              const midY = rect.top + rect.height / 2;
+              const position = e.clientY < midY ? 'before' : 'after';
+              handleDrop(e, element.id, position);
+            }
           }}
         >
           {element.type === 'div' && (
@@ -194,8 +275,20 @@ export function ElementHierarchy() {
           No elements yet. Drag elements from the sidebar.
         </div>
       ) : (
-        template.elements.map((element) => renderElement(element))
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDropTarget(null);
+          }}
+          onDrop={(e) => handleDrop(e, null, 'after')}
+        >
+          {template.elements.map((element) => renderElement(element))}
+        </div>
       )}
     </div>
   );
+}
+
+function findElementIndex(elements: TemplateElement[], id: string): number {
+  return elements.findIndex(el => el.id === id);
 }

@@ -3,7 +3,7 @@
 import { useRef, useState, useCallback } from 'react';
 import { useBuilderStore } from '@/lib/store';
 import { TemplateElement, StyleValue, ElementType } from '@/lib/types';
-import { GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 
 function styleValueToString(value: StyleValue | undefined): string {
   if (!value) return 'auto';
@@ -79,16 +79,17 @@ export function BuilderCanvas() {
           addElement(elementType);
         }
       } else if (draggedId) {
-        const targetElement = targetId ? findElementById(template.elements, targetId) : null;
-        
-        if (targetId && position === 'inside' && targetElement?.type === 'div') {
+        if (targetId && position === 'inside') {
           moveElementInto(draggedId, targetId);
-        } else if (targetId && targetElement) {
-          const targetIndex = template.elements.findIndex(el => el.id === targetId);
-          const newIndex = position === 'before' ? targetIndex : targetIndex + 1;
-          moveElementToIndex(draggedId, newIndex, null);
-        } else if (!targetId) {
-          const newIndex = position === 'before' ? 0 : template.elements.length;
+        } else if (targetId) {
+          const targetElement = findElementById(template.elements, targetId);
+          if (targetElement) {
+            const targetIndex = findElementIndex(template.elements, targetId);
+            const newIndex = position === 'before' ? targetIndex : targetIndex + 1;
+            moveElementToIndex(draggedId, newIndex, null);
+          }
+        } else {
+          const newIndex = template.elements.length;
           moveElementToIndex(draggedId, newIndex, null);
         }
       }
@@ -101,30 +102,27 @@ export function BuilderCanvas() {
     [addElement, moveElementInto, moveElementToIndex, template.elements, setDraggingElement, setDropTarget]
   );
 
-  const handleDragOver = useCallback((e: React.DragEvent, elementId: string | null, position: 'before' | 'after' | 'inside') => {
+  const handleDragOver = useCallback((e: React.DragEvent, elementId: string, position: 'before' | 'after' | 'inside') => {
     e.preventDefault();
     e.stopPropagation();
-    
-    const draggedId = e.dataTransfer.getData('element-id');
-    const elementType = e.dataTransfer.getData('element-type');
-    
-    if (elementId) {
-      setDropTarget(elementId);
-      setDragOverPosition(position);
-    } else {
-      setDropTarget(null);
-      setDragOverPosition(null);
-    }
+    setDropTarget(elementId);
+    setDragOverPosition(position);
+    setIsDragOver(true);
+  }, [setDropTarget]);
+
+  const handleInnerDragOver = useCallback((e: React.DragEvent, elementId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDropTarget(elementId);
+    setDragOverPosition('inside');
     setIsDragOver(true);
   }, [setDropTarget]);
 
   const handleDragLeave = useCallback(() => {
     if (!draggingElementId) {
       setIsDragOver(false);
-      setDropTarget(null);
-      setDragOverPosition(null);
     }
-  }, [draggingElementId, setDropTarget]);
+  }, [draggingElementId]);
 
   const handleCanvasDrop = useCallback(
     (e: React.DragEvent) => {
@@ -151,7 +149,6 @@ export function BuilderCanvas() {
     const isDragging = element.id === draggingElementId;
     const isDropTarget = element.id === dropTargetId;
 
-    const isDragOverThis = isDropTarget && dragOverPosition;
     const showDropBefore = isDropTarget && dragOverPosition === 'before' && element.type !== 'div';
     const showDropAfter = isDropTarget && dragOverPosition === 'after' && element.type !== 'div';
     const showDropInside = isDropTarget && dragOverPosition === 'inside' && element.type === 'div';
@@ -210,10 +207,18 @@ export function BuilderCanvas() {
             flexDirection: 'column',
             display: 'flex',
           }}
-          className={`${showDropInside ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
+          className={`transition-all ${showDropInside ? 'ring-2 ring-blue-500 ring-inset bg-blue-500/5' : ''}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleInnerDragOver(e, element.id);
+          }}
+          onDrop={(e) => handleDrop(e, element.id, 'inside')}
         >
           {element.children && element.children.length > 0 ? (
-            element.children.map((child, i) => renderElement(child, i))
+            <div className="flex flex-col gap-2 p-1">
+              {element.children.map((child, i) => renderElement(child, i))}
+            </div>
           ) : (
             <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs border-2 border-dashed border-muted-foreground/20 rounded m-1">
               Drop elements here
@@ -241,9 +246,11 @@ export function BuilderCanvas() {
           onDragStart={(e) => handleDragStart(e, element.id)}
           onDragEnd={handleDragEnd}
           onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             if (element.type === 'div') {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const midY = rect.top + rect.height / 2;
+              const midY = rect.top + rect.height * 0.25;
               const position = e.clientY < midY ? 'before' : 'after';
               handleDragOver(e, element.id, position);
             } else {
@@ -251,9 +258,11 @@ export function BuilderCanvas() {
             }
           }}
           onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             if (element.type === 'div') {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const midY = rect.top + rect.height / 2;
+              const midY = rect.top + rect.height * 0.25;
               const position = e.clientY < midY ? 'before' : 'after';
               handleDrop(e, element.id, position);
             } else {
@@ -336,4 +345,8 @@ function findElementById(elements: TemplateElement[], id: string): TemplateEleme
     }
   }
   return null;
+}
+
+function findElementIndex(elements: TemplateElement[], id: string): number {
+  return elements.findIndex(el => el.id === id);
 }
