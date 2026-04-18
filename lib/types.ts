@@ -62,13 +62,12 @@ export interface ElementStyles {
   flexShrink?: number;
   flexBasis?: StyleValue;
   
-  gridTemplateColumns?: string;
+gridTemplateColumns?: string;
   gridTemplateRows?: string;
   gridColumnGap?: StyleValue;
   gridRowGap?: StyleValue;
-  gridColumn?: string;
-  gridRow?: string;
-  
+  gridColumns?: number;
+  gridRows?: number;
   gap?: StyleValue;
   
   separatorWeight?: StyleValue;

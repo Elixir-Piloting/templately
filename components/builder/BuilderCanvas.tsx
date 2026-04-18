@@ -2,11 +2,11 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { useBuilderStore } from '@/lib/store';
-import { TemplateElement, StyleValue, SpacingValue, ElementType } from '@/lib/types';
+import { TemplateElement, StyleValue, SpacingValue, ElementType, WidthOption, HeightOption, LayoutMode } from '@/lib/types';
 import { GripVertical } from 'lucide-react';
 
-function styleValueToString(value: StyleValue | undefined): string {
-  if (!value) return 'auto';
+function styleValueToString(value: StyleValue | undefined, fallback = 'auto'): string {
+  if (!value) return fallback;
   return `${value.value}${value.unit}`;
 }
 
@@ -16,11 +16,32 @@ function styleValueToNumber(value: StyleValue | undefined): number {
 
 function spacingToString(value: SpacingValue | undefined): string {
   if (!value) return '';
-  const top = value.top ? `${value.top.value}${value.top.unit}` : '0';
-  const right = value.right ? `${value.right.value}${value.right.unit}` : '0';
-  const bottom = value.bottom ? `${value.bottom.value}${value.bottom.unit}` : '0';
-  const left = value.left ? `${value.left.value}${value.left.unit}` : '0';
+  const top = value.top ? styleValueToString(value.top, '0') : '0';
+  const right = value.right ? styleValueToString(value.right, '0') : '0';
+  const bottom = value.bottom ? styleValueToString(value.bottom, '0') : '0';
+  const left = value.left ? styleValueToString(value.left, '0') : '0';
   return `${top} ${right} ${bottom} ${left}`;
+}
+
+function getWidthStyle(styles: any): string | undefined {
+  const option = styles.widthOption;
+  if (option === 'full') return '100%';
+  if (option === 'fit') return 'fit-content';
+  if (option === 'custom' || !option) {
+    return styles.width ? styleValueToString(styles.width) : undefined;
+  }
+  return undefined;
+}
+
+function getHeightStyle(styles: any): string | undefined {
+  const option = styles.heightOption;
+  if (option === 'full') return '100%';
+  if (option === 'fit') return 'fit-content';
+  if (option === 'auto') return 'auto';
+  if (option === 'custom' || !option) {
+    return styles.height ? styleValueToString(styles.height) : undefined;
+  }
+  return undefined;
 }
 
 export function BuilderCanvas() {
@@ -91,15 +112,11 @@ export function BuilderCanvas() {
         if (targetId && position === 'inside') {
           moveElementInto(draggedId, targetId);
         } else if (targetId) {
-          const targetElement = findElementById(template.elements, targetId);
-          if (targetElement) {
-            const targetIndex = findElementIndex(template.elements, targetId);
-            const newIndex = position === 'before' ? targetIndex : targetIndex + 1;
-            moveElementToIndex(draggedId, newIndex, null);
-          }
-        } else {
-          const newIndex = template.elements.length;
+          const targetIndex = template.elements.findIndex(el => el.id === targetId);
+          const newIndex = position === 'before' ? targetIndex : targetIndex + 1;
           moveElementToIndex(draggedId, newIndex, null);
+        } else {
+          moveElementToIndex(draggedId, template.elements.length, null);
         }
       }
       
@@ -141,8 +158,7 @@ export function BuilderCanvas() {
       if (elementType) {
         addElement(elementType);
       } else if (draggedId) {
-        const newIndex = template.elements.length;
-        moveElementToIndex(draggedId, newIndex, null);
+        moveElementToIndex(draggedId, template.elements.length, null);
       }
       
       setIsDragOver(false);
@@ -152,7 +168,7 @@ export function BuilderCanvas() {
     [addElement, moveElementToIndex, template.elements.length, setDraggingElement, setDropTarget]
   );
 
-  const renderElement = (element: TemplateElement, _index?: number): React.ReactNode => {
+  const renderElement = (element: TemplateElement): React.ReactNode => {
     const isSelected = element.id === selectedElementId;
     const isHovered = element.id === hoveredElementId;
     const isDragging = element.id === draggingElementId;
@@ -162,72 +178,72 @@ export function BuilderCanvas() {
     const showDropAfter = isDropTarget && dragOverPosition === 'after' && element.type !== 'div';
     const showDropInside = isDropTarget && dragOverPosition === 'inside' && element.type === 'div';
 
-    let baseStyle: React.CSSProperties = {
-      display: 'flex',
-      boxSizing: 'border-box',
-      fontSize: element.styles.fontSize ? styleValueToString(element.styles.fontSize) : undefined,
-      fontWeight: element.styles.fontWeight,
-      color: element.styles.color,
-      textAlign: element.styles.textAlign,
-      backgroundColor: element.styles.backgroundColor,
-      opacity: element.styles.opacity,
-      lineHeight: element.styles.lineHeight,
-      flexGrow: element.styles.flexGrow,
-      flexShrink: element.styles.flexShrink,
-      margin: spacingToString(element.styles.margin),
-    };
-
-    let content: React.ReactNode = null;
+    let elementStyle: React.CSSProperties = {};
+    let children: React.ReactNode = null;
 
     if (element.type === 'header') {
-      content = (
-        <div style={{ ...baseStyle, width: element.styles.width ? styleValueToString(element.styles.width) : undefined }}>
-          {element.content}
-        </div>
-      );
+      elementStyle = {
+        width: getWidthStyle(element.styles),
+        height: getHeightStyle(element.styles),
+        fontSize: element.styles.fontSize ? styleValueToString(element.styles.fontSize) : undefined,
+        fontWeight: element.styles.fontWeight,
+        color: element.styles.color,
+        textAlign: element.styles.textAlign,
+        margin: spacingToString(element.styles.margin),
+      };
+      children = <span>{element.content}</span>;
     } else if (element.type === 'paragraph') {
-      content = (
-        <div style={{ ...baseStyle, width: element.styles.width ? styleValueToString(element.styles.width) : undefined, wordBreak: 'break-word' }}>
-          {element.content}
-        </div>
-      );
+      elementStyle = {
+        width: getWidthStyle(element.styles),
+        height: getHeightStyle(element.styles),
+        fontSize: element.styles.fontSize ? styleValueToString(element.styles.fontSize) : undefined,
+        fontWeight: element.styles.fontWeight,
+        color: element.styles.color,
+        textAlign: element.styles.textAlign,
+        lineHeight: element.styles.lineHeight,
+        wordBreak: 'break-word',
+        margin: spacingToString(element.styles.margin),
+      };
+      children = <span>{element.content}</span>;
     } else if (element.type === 'separator') {
-      content = (
-        <div
-          style={{
-            ...baseStyle,
-            height: element.styles.borderWidth ? styleValueToString(element.styles.borderWidth) : '2px',
-            backgroundColor: element.styles.backgroundColor || '#000',
-          }}
-        />
-      );
+      const isVertical = element.styles.separatorOrientation === 'vertical';
+      elementStyle = {
+        width: isVertical ? styleValueToString(element.styles.separatorWeight, '2px') : getWidthStyle(element.styles),
+        height: isVertical ? getWidthStyle(element.styles) : styleValueToString(element.styles.separatorWeight, '2px'),
+        minWidth: isVertical ? undefined : '1px',
+        minHeight: isVertical ? '1px' : undefined,
+        backgroundColor: element.styles.separatorColor || '#000',
+        margin: spacingToString(element.styles.margin),
+      };
+      children = null;
     } else if (element.type === 'div') {
-      content = (
-        <div
-          style={{
-            ...baseStyle,
-            borderWidth: element.styles.borderWidth ? styleValueToNumber(element.styles.borderWidth) + 'px' : '1px',
-            borderStyle: 'solid',
-            borderColor: element.styles.borderColor || '#ccc',
-            borderRadius: element.styles.borderRadius ? styleValueToString(element.styles.borderRadius) : '4px',
-            minHeight: element.styles.minHeight ? styleValueToString(element.styles.minHeight) : '50px',
-            padding: spacingToString(element.styles.padding),
-margin: spacingToString(element.styles.margin),
-            flexDirection: 'column',
-            display: 'flex',
-          }}
-          className={`transition-all ${showDropInside ? 'ring-2 ring-blue-500 ring-inset bg-blue-500/5' : ''}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleInnerDragOver(e, element.id);
-          }}
-          onDrop={(e) => handleDrop(e, element.id, 'inside')}
-        >
+      const display = element.styles.display || 'flex';
+      
+      elementStyle = {
+        width: getWidthStyle(element.styles),
+        height: getHeightStyle(element.styles),
+        backgroundColor: element.styles.backgroundColor === 'transparent' ? 'transparent' : element.styles.backgroundColor,
+        borderWidth: element.styles.borderWidth ? styleValueToNumber(element.styles.borderWidth) + 'px' : '1px',
+        borderStyle: element.styles.borderStyle || 'solid',
+        borderColor: element.styles.borderColor || '#ccc',
+        borderRadius: element.styles.borderRadius ? styleValueToString(element.styles.borderRadius) : '4px',
+        display,
+        flexDirection: element.styles.flexDirection || 'column',
+        flexWrap: element.styles.flexWrap || 'nowrap',
+        justifyContent: element.styles.justifyContent || 'flex-start',
+        alignItems: element.styles.alignItems || 'stretch',
+        gap: element.styles.gap ? styleValueToString(element.styles.gap, '0') : '8px',
+        gridTemplateColumns: element.styles.gridTemplateColumns,
+        gridTemplateRows: element.styles.gridTemplateRows,
+        padding: spacingToString(element.styles.padding),
+        margin: spacingToString(element.styles.margin),
+        minHeight: element.styles.minHeight ? styleValueToString(element.styles.minHeight, '50px') : '50px',
+      };
+      
+      children = (
+        <div className="flex flex-col gap-2 p-1">
           {element.children && element.children.length > 0 ? (
-            <div className="flex flex-col gap-2 p-1">
-              {element.children.map((child, i) => renderElement(child, i))}
-            </div>
+            element.children.map(child => renderElement(child))
           ) : (
             <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs border-2 border-dashed border-muted-foreground/20 rounded m-1">
               Drop elements here
@@ -278,16 +294,17 @@ margin: spacingToString(element.styles.margin),
               handleDrop(e, element.id, 'before');
             }
           }}
+          style={elementStyle}
           className={`relative cursor-pointer transition-all ${
             isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : isHovered ? 'ring-2 ring-blue-300 ring-offset-1' : ''
-          } ${isDragging ? 'opacity-50' : ''}`}
+          } ${isDragging ? 'opacity-50' : ''} ${showDropInside ? 'ring-2 ring-blue-500 ring-inset bg-blue-500/5' : ''}`}
         >
           {(isHovered || isSelected) && (
             <div className="absolute -left-6 top-1/2 -translate-y-1/2 p-1 cursor-grab hover:bg-muted rounded z-10">
               <GripVertical className="h-4 w-4 text-muted-foreground" />
             </div>
           )}
-          {content}
+          {children}
         </div>
         
         {showDropAfter && (
@@ -328,7 +345,6 @@ margin: spacingToString(element.styles.margin),
             justifyContent: template.layout.justifyContent,
             alignItems: template.layout.alignItems,
             gap: template.layout.gap ? styleValueToString(template.layout.gap) : '16px',
-            padding: template.layout.padding ? styleValueToString(template.layout.padding) : '0',
             margin: 0,
             minHeight: '100%',
             boxSizing: 'border-box',
@@ -343,19 +359,4 @@ margin: spacingToString(element.styles.margin),
       </div>
     </div>
   );
-}
-
-function findElementById(elements: TemplateElement[], id: string): TemplateElement | null {
-  for (const el of elements) {
-    if (el.id === id) return el;
-    if (el.children) {
-      const found = findElementById(el.children, id);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-function findElementIndex(elements: TemplateElement[], id: string): number {
-  return elements.findIndex(el => el.id === id);
 }
