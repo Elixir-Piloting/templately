@@ -122,6 +122,17 @@ function findElementIndex(elements: TemplateElement[], id: string): number {
   return elements.findIndex(el => el.id === id);
 }
 
+function findElementById(elements: TemplateElement[], id: string): TemplateElement | null {
+  for (const el of elements) {
+    if (el.id === id) return el;
+    if (el.children) {
+      const found = findElementById(el.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 export function ElementHierarchy() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   
@@ -188,11 +199,29 @@ export function ElementHierarchy() {
     setDropTarget(null);
   }, [moveElementInto, moveElementToIndex, template.elements, setDraggingElement, setDropTarget]);
 
-  const handleDragOver = useCallback((e: React.DragEvent, elementId: string, _position: 'before' | 'after' | 'inside') => {
+  const handleDragOver = useCallback((e: React.DragEvent, elementId: string, position: 'before' | 'after' | 'inside') => {
     e.preventDefault();
     e.stopPropagation();
-    setDropTarget(elementId);
-  }, [setDropTarget]);
+    
+    if (elementId === draggingElementId) return;
+    
+    const targetElement = findElementById(template.elements, elementId);
+    const isContainer = targetElement?.type === 'div';
+    
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const relY = (e.clientY - rect.top) / rect.height;
+    const relX = (e.clientX - rect.left) / rect.width;
+    
+    if (isContainer && relX > 0.15 && relX < 0.85 && relY > 0.25 && relY < 0.75) {
+      setDropTarget(elementId);
+    } else if (isContainer) {
+      const pos = relY < 0.5 ? 'before' : 'after';
+      setDropTarget(elementId);
+    } else {
+      const pos = relY < 0.5 ? 'before' : 'after';
+      setDropTarget(elementId);
+    }
+  }, [setDropTarget, template.elements, draggingElementId]);
 
   const renderElement = (element: TemplateElement, depth: number = 0): React.ReactNode => {
     const isSelected = element.id === selectedElementId;

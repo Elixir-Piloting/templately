@@ -132,14 +132,27 @@ export function BuilderCanvas() {
   const handleInnerDragOver = useCallback((e: React.DragEvent, elementId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    setDropTarget(elementId);
-    setDragOverPosition('inside');
-    setIsDragOver(true);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const relX = x / rect.width;
+    const relY = y / rect.height;
+    
+    if (relX > 0.2 && relX < 0.8 && relY > 0.2 && relY < 0.8) {
+      setDropTarget(elementId);
+      setDragOverPosition('inside');
+      setIsDragOver(true);
+    }
   }, [setDropTarget]);
 
-  const handleInnerDragLeave = useCallback(() => {
-    setDragOverPosition(null);
-    setDropTarget(null);
+  const handleInnerDragLeave = useCallback((e: React.DragEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
+      setDragOverPosition(null);
+      setDropTarget(null);
+    }
   }, [setDropTarget]);
 
   const handleDragOver = useCallback((e: React.DragEvent, elementId: string, position: 'before' | 'after' | 'inside') => {
@@ -219,12 +232,13 @@ export function BuilderCanvas() {
       children = <span>{element.content}</span>;
     } else if (element.type === 'separator') {
       const isVertical = element.styles.separatorOrientation === 'vertical';
+      const length = element.styles.separatorLength ? styleValueToString(element.styles.separatorLength) : undefined;
       elementStyle = {
         display: isVertical ? 'inline-block' : 'block',
-        width: isVertical ? undefined : (getWidthStyle(element.styles) || '100%'),
-        height: isVertical ? '100%' : undefined,
-        minWidth: isVertical ? '1px' : undefined,
-        minHeight: isVertical ? undefined : '1px',
+        width: isVertical ? undefined : (length || getWidthStyle(element.styles) || '100%'),
+        height: isVertical ? (length || '100%') : undefined,
+        minWidth: isVertical ? styleValueToString(element.styles.separatorWeight, '1px') : undefined,
+        minHeight: isVertical ? undefined : styleValueToString(element.styles.separatorWeight, '1px'),
         backgroundColor: element.styles.separatorColor || '#000',
         margin: spacingToString(element.styles.margin),
       };
@@ -319,11 +333,19 @@ export function BuilderCanvas() {
               handleInnerDragOver(e, element.id);
             } else if (element.type === 'div') {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const midY = rect.top + rect.height * 0.3;
-              const position = e.clientY < midY ? 'before' : 'after';
-              handleDragOver(e, element.id, position);
+              const relY = (e.clientY - rect.top) / rect.height;
+              
+              if (relY > 0.3 && relY < 0.7) {
+                handleInnerDragOver(e, element.id);
+              } else {
+                const position = relY < 0.3 ? 'before' : 'after';
+                handleDragOver(e, element.id, position);
+              }
             } else {
-              handleDragOver(e, element.id, 'before');
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              const relY = (e.clientY - rect.top) / rect.height;
+              const position = relY < 0.5 ? 'before' : 'after';
+              handleDragOver(e, element.id, position);
             }
           }}
           onDrop={(e) => {
@@ -331,11 +353,19 @@ export function BuilderCanvas() {
             e.stopPropagation();
             if (element.type === 'div') {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const midY = rect.top + rect.height * 0.3;
-              const position = e.clientY < midY ? 'before' : 'after';
-              handleDrop(e, element.id, position);
+              const relY = (e.clientY - rect.top) / rect.height;
+              
+              if (relY > 0.3 && relY < 0.7) {
+                handleDrop(e, element.id, 'inside');
+              } else {
+                const position = relY < 0.3 ? 'before' : 'after';
+                handleDrop(e, element.id, position);
+              }
             } else {
-              handleDrop(e, element.id, 'before');
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              const relY = (e.clientY - rect.top) / rect.height;
+              const position = relY < 0.5 ? 'before' : 'after';
+              handleDrop(e, element.id, position);
             }
           }}
           style={elementStyle}
