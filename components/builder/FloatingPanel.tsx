@@ -264,10 +264,11 @@ export function ElementHierarchy() {
             const relY = (e.clientY - rect.top) / rect.height;
             const relX = (e.clientX - rect.left) / rect.width;
             
-            if (canBeDropTarget && relX > 0.15 && relX < 0.85 && relY > 0.25 && relY < 0.75) {
+            // Strict center zone only (30-70% for both X and Y)
+            if (canBeDropTarget && relX > 0.3 && relX < 0.7 && relY > 0.3 && relY < 0.7) {
               handleDragOver(e, element.id, 'inside');
             } else {
-              const position = relY < 0.5 ? 'before' : 'after';
+              const position = relY <= 0.5 ? 'before' : 'after';
               handleDragOver(e, element.id, position);
             }
           }}
@@ -278,10 +279,10 @@ export function ElementHierarchy() {
             const relY = (e.clientY - rect.top) / rect.height;
             const relX = (e.clientX - rect.left) / rect.width;
             
-            if (canBeDropTarget && relX > 0.15 && relX < 0.85 && relY > 0.25 && relY < 0.75) {
+            if (canBeDropTarget && relX > 0.3 && relX < 0.7 && relY > 0.3 && relY < 0.7) {
               handleDrop(e, element.id, 'inside');
             } else {
-              const position = relY < 0.5 ? 'before' : 'after';
+              const position = relY <= 0.5 ? 'before' : 'after';
               handleDrop(e, element.id, position);
             }
           }}

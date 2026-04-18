@@ -46,8 +46,8 @@ export const separatorElement: ElementConfig = {
   ],
   render: (element: TemplateElement) => {
     const isHorizontal = element.styles.separatorOrientation !== 'vertical';
-    const isFull = element.styles.separatorLengthOption !== 'custom';
-    const length = isFull ? (isHorizontal ? '100%' : '100%') : (element.styles.separatorLength ? `${element.styles.separatorLength.value}${element.styles.separatorLength.unit}` : '100%');
+    const isFull = element.styles.separatorLengthOption === 'full' || !element.styles.separatorLengthOption;
+    const length = isFull ? '100%' : (element.styles.separatorLength ? `${element.styles.separatorLength.value}${element.styles.separatorLength.unit}` : '100%');
     return (
       <div
         style={{

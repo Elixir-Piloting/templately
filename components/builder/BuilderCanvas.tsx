@@ -139,14 +139,20 @@ export function BuilderCanvas() {
     const relX = x / rect.width;
     const relY = y / rect.height;
     
-    if (relX > 0.2 && relX < 0.8 && relY > 0.2 && relY < 0.8) {
+    // Very strict center zone only (35-65%)
+    if (relX > 0.35 && relX < 0.65 && relY > 0.35 && relY < 0.65) {
       setDropTarget(elementId);
       setDragOverPosition('inside');
       setIsDragOver(true);
+    } else {
+      // We're in the margin zone - clear target
+      setDropTarget(null);
+      setDragOverPosition(null);
     }
   }, [setDropTarget]);
 
   const handleInnerDragLeave = useCallback((e: React.DragEvent) => {
+    // Only clear if we're actually leaving the container, not entering a child
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -233,11 +239,12 @@ export function BuilderCanvas() {
       children = <span>{element.content}</span>;
     } else if (element.type === 'separator') {
       const isVertical = element.styles.separatorOrientation === 'vertical';
-      const length = element.styles.separatorLength ? styleValueToString(element.styles.separatorLength) : undefined;
+      const isFull = element.styles.separatorLengthOption === 'full' || !element.styles.separatorLengthOption;
+      const length = isFull ? '100%' : (element.styles.separatorLength ? styleValueToString(element.styles.separatorLength) : '100%');
       elementStyle = {
         display: isVertical ? 'inline-block' : 'block',
-        width: isVertical ? undefined : (length || getWidthStyle(element.styles) || '100%'),
-        height: isVertical ? (length || '100%') : undefined,
+        width: isVertical ? undefined : length,
+        height: isVertical ? length : undefined,
         minWidth: isVertical ? styleValueToString(element.styles.separatorWeight, '1px') : undefined,
         minHeight: isVertical ? undefined : styleValueToString(element.styles.separatorWeight, '1px'),
         backgroundColor: element.styles.separatorColor || '#000',
@@ -336,16 +343,17 @@ export function BuilderCanvas() {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
               const relY = (e.clientY - rect.top) / rect.height;
               
+              // Strict center zone (30-70%) for inside, otherwise before/after
               if (relY > 0.3 && relY < 0.7) {
                 handleInnerDragOver(e, element.id);
               } else {
-                const position = relY < 0.3 ? 'before' : 'after';
+                const position = relY <= 0.3 ? 'before' : 'after';
                 handleDragOver(e, element.id, position);
               }
             } else {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
               const relY = (e.clientY - rect.top) / rect.height;
-              const position = relY < 0.5 ? 'before' : 'after';
+              const position = relY <= 0.5 ? 'before' : 'after';
               handleDragOver(e, element.id, position);
             }
           }}
@@ -359,13 +367,13 @@ export function BuilderCanvas() {
               if (relY > 0.3 && relY < 0.7) {
                 handleDrop(e, element.id, 'inside');
               } else {
-                const position = relY < 0.3 ? 'before' : 'after';
+                const position = relY <= 0.3 ? 'before' : 'after';
                 handleDrop(e, element.id, position);
               }
             } else {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
               const relY = (e.clientY - rect.top) / rect.height;
-              const position = relY < 0.5 ? 'before' : 'after';
+              const position = relY <= 0.5 ? 'before' : 'after';
               handleDrop(e, element.id, position);
             }
           }}
