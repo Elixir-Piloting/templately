@@ -133,6 +133,19 @@ function findElementById(elements: TemplateElement[], id: string): TemplateEleme
   return null;
 }
 
+function findParentOfElement(elements: TemplateElement[], childId: string): string | null {
+  for (const el of elements) {
+    if (el.children && el.children.some(child => child.id === childId)) {
+      return el.id;
+    }
+    if (el.children) {
+      const found = findParentOfElement(el.children, childId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 export function ElementHierarchy() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   
@@ -188,8 +201,14 @@ export function ElementHierarchy() {
       return;
     }
 
+    const currentParentId = findParentOfElement(template.elements, draggedId);
+    
     if (targetId && position === 'inside') {
-      moveElementInto(draggedId, targetId);
+      if (currentParentId && currentParentId !== targetId) {
+        moveElementToIndex(draggedId, 0, targetId);
+      } else {
+        moveElementInto(draggedId, targetId);
+      }
     } else if (targetId) {
       const targetIndex = findElementIndex(template.elements, targetId);
       const newIndex = position === 'before' ? targetIndex : targetIndex + 1;

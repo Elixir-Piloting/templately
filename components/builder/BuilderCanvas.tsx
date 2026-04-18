@@ -14,7 +14,35 @@ interface DropZone {
 const DROP_THRESHOLDS = {
   insideMin: 0.25,  // 25% from top = start of inside zone
   insideMax: 0.75,  // 75% from top = end of inside zone
+  childOutsideMin: 0,  // For children: must be fully outside to move out
+  childOutsideMax: 1,
 };
+
+function isElementChildOf(
+  elements: TemplateElement[],
+  childId: string,
+  parentId: string
+): boolean {
+  const parent = elements.find(el => el.id === parentId);
+  if (!parent || !parent.children) return false;
+  return parent.children.some(child => child.id === childId);
+}
+
+function findParentOfElement(
+  elements: TemplateElement[],
+  childId: string
+): string | null {
+  for (const el of elements) {
+    if (el.children && el.children.some(child => child.id === childId)) {
+      return el.id;
+    }
+    if (el.children) {
+      const found = findParentOfElement(el.children, childId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 function calculateDropZone(
   e: React.DragEvent,
@@ -141,12 +169,23 @@ export function BuilderCanvas() {
           addElement(elementType);
         }
       } else if (draggedId) {
+        const currentParentId = findParentOfElement(template.elements, draggedId);
+        
         if (targetId && position === 'inside') {
-          moveElementInto(draggedId, targetId);
+          if (currentParentId && currentParentId !== targetId) {
+            moveElementToIndex(draggedId, 0, targetId);
+          } else {
+            moveElementInto(draggedId, targetId);
+          }
         } else if (targetId) {
           const targetIndex = findElementIndex(template.elements, targetId);
           const newIndex = position === 'before' ? targetIndex : targetIndex + 1;
-          moveElementToIndex(draggedId, newIndex, null);
+          
+          if (currentParentId) {
+            moveElementToIndex(draggedId, newIndex, null);
+          } else {
+            moveElementToIndex(draggedId, newIndex, null);
+          }
         } else {
           moveElementToIndex(draggedId, template.elements.length, null);
         }
@@ -185,10 +224,20 @@ export function BuilderCanvas() {
     
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const relY = (e.clientY - rect.top) / rect.height;
+    const draggedId = e.dataTransfer.getData('element-id');
+    
+    const parentId = draggedId ? findParentOfElement(template.elements, draggedId) : null;
+    const isDraggingChild = parentId === elementId;
     
     let position: 'before' | 'after' | 'inside';
     
-    if (isContainer && relY >= DROP_THRESHOLDS.insideMin && relY <= DROP_THRESHOLDS.insideMax) {
+    if (isDraggingChild) {
+      if (relY < DROP_THRESHOLDS.childOutsideMin || relY > DROP_THRESHOLDS.childOutsideMax) {
+        position = relY < 0.5 ? 'before' : 'after';
+      } else {
+        position = 'inside';
+      }
+    } else if (isContainer && relY >= DROP_THRESHOLDS.insideMin && relY <= DROP_THRESHOLDS.insideMax) {
       position = 'inside';
     } else if (relY < DROP_THRESHOLDS.insideMin) {
       position = 'before';
@@ -199,7 +248,7 @@ export function BuilderCanvas() {
     setDropTarget(elementId);
     setDragOverPosition(position);
     setIsDragOver(true);
-  }, [setDropTarget, setDragOverPosition]);
+  }, [setDropTarget, setDragOverPosition, template.elements]);
 
   const handleElementDrop = useCallback((e: React.DragEvent, elementId: string, isContainer: boolean) => {
     e.preventDefault();
@@ -207,10 +256,20 @@ export function BuilderCanvas() {
     
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const relY = (e.clientY - rect.top) / rect.height;
+    const draggedId = e.dataTransfer.getData('element-id');
+    
+    const parentId = draggedId ? findParentOfElement(template.elements, draggedId) : null;
+    const isDraggingChild = parentId === elementId;
     
     let position: 'before' | 'after' | 'inside';
     
-    if (isContainer && relY >= DROP_THRESHOLDS.insideMin && relY <= DROP_THRESHOLDS.insideMax) {
+    if (isDraggingChild) {
+      if (relY < DROP_THRESHOLDS.childOutsideMin || relY > DROP_THRESHOLDS.childOutsideMax) {
+        position = relY < 0.5 ? 'before' : 'after';
+      } else {
+        position = 'inside';
+      }
+    } else if (isContainer && relY >= DROP_THRESHOLDS.insideMin && relY <= DROP_THRESHOLDS.insideMax) {
       position = 'inside';
     } else if (relY < DROP_THRESHOLDS.insideMin) {
       position = 'before';
@@ -219,7 +278,7 @@ export function BuilderCanvas() {
     }
     
     handleDrop(e, elementId, position);
-  }, [handleDrop]);
+  }, [handleDrop, template.elements]);
 
   const renderElement = (element: TemplateElement): React.ReactNode => {
     const isSelected = element.id === selectedElementId;
