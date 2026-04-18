@@ -1,4 +1,4 @@
-export type ElementType = 'header' | 'paragraph' | 'separator' | 'div';
+export type ElementType = 'header' | 'paragraph' | 'separator' | 'div' | 'image' | 'button' | 'spacer' | 'code' | 'list' | 'badge';
 
 export interface TemplateElement {
   id: string;
@@ -28,6 +28,7 @@ export type LayoutMode = 'flex' | 'grid' | 'block';
 export interface ElementStyles {
   fontSize?: StyleValue;
   fontWeight?: number;
+  fontFamily?: string;
   color?: string;
   textAlign?: 'left' | 'center' | 'right' | 'justify';
   backgroundColor?: string;
@@ -42,6 +43,13 @@ export interface ElementStyles {
   
   opacity?: number;
   lineHeight?: number;
+  
+  src?: string;
+  alt?: string;
+  objectFit?: string;
+  listStyleType?: string;
+  listPosition?: string;
+  [key: string]: unknown;
   
   width?: StyleValue;
   widthOption?: WidthOption;

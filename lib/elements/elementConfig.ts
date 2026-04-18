@@ -1,6 +1,8 @@
 'use client';
 
-import { ElementType, TemplateElement, StyleValue, SpacingValue, WidthOption, HeightOption, LayoutMode } from '@/lib/types';
+import { TemplateElement, StyleValue, SpacingValue, WidthOption, HeightOption, LayoutMode } from '@/lib/types';
+
+export type ElementType = 'header' | 'paragraph' | 'separator' | 'div' | 'image' | 'button' | 'spacer' | 'code' | 'list' | 'badge';
 
 export interface ControlField {
   key: string;

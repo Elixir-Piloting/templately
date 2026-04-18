@@ -12,13 +12,19 @@ import { InputWithUnit } from './InputWithUnit';
 import { InputWithSpacing } from './InputWithSpacing';
 import { DimensionsInput } from './DimensionsInput';
 import { LayoutMode } from '@/lib/types';
-import { Layout, Type, Minus, Square, Trash2, ChevronUp, ChevronDown, Search, ChevronDown as ChevronDownIcon, ChevronRight as ChevronRightIcon } from 'lucide-react';
+import { Layout, Type, Minus, Square, Trash2, ChevronUp, ChevronDown, Search, ChevronDown as ChevronDownIcon, ChevronRight as ChevronRightIcon, Image, MousePointerClick, ArrowDown, Code, List, Tag } from 'lucide-react';
 
-const ELEMENT_ICONS: Record<ElementType, React.ReactNode> = {
+const ELEMENT_ICONS: Record<string, React.ReactNode> = {
   header: <Type className="h-6 w-6" />,
   paragraph: <Layout className="h-6 w-6" />,
   separator: <Minus className="h-6 w-6" />,
   div: <Square className="h-6 w-6" />,
+  image: <Image className="h-6 w-6" />,
+  button: <MousePointerClick className="h-6 w-6" />,
+  spacer: <ArrowDown className="h-6 w-6" />,
+  code: <Code className="h-6 w-6" />,
+  list: <List className="h-6 w-6" />,
+  badge: <Tag className="h-6 w-6" />,
 };
 
 const GROUP_LABELS: Record<string, string> = {
