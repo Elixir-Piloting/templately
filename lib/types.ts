@@ -72,6 +72,7 @@ export interface ElementStyles {
   
   separatorWeight?: StyleValue;
   separatorLength?: StyleValue;
+  separatorLengthOption?: 'full' | 'custom';
   separatorOrientation?: 'horizontal' | 'vertical';
   separatorColor?: string;
 }

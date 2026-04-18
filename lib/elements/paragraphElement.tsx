@@ -8,6 +8,7 @@ export const paragraphElement: ElementConfig = {
   type: 'paragraph',
   label: 'Paragraph',
   icon: 'Layout',
+  group: 'content',
   canContain: [],
   defaultContent: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
   defaultStyles: {

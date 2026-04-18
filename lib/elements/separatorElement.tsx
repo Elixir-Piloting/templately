@@ -8,12 +8,14 @@ export const separatorElement: ElementConfig = {
   type: 'separator',
   label: 'Separator',
   icon: 'Minus',
+  group: 'layout',
   canContain: [],
   defaultContent: '',
   defaultStyles: {
     backgroundColor: '#000000',
     separatorWeight: createStyleValue(2),
     separatorLength: createStyleValue(100),
+    separatorLengthOption: 'full',
     separatorOrientation: 'horizontal',
     separatorColor: '#000000',
     widthOption: 'full',
@@ -30,8 +32,12 @@ export const separatorElement: ElementConfig = {
           { value: 'horizontal', label: 'Horizontal' },
           { value: 'vertical', label: 'Vertical' },
         ]},
+        { key: 'separatorLengthOption', label: 'Length', type: 'select', options: [
+          { value: 'full', label: 'Full' },
+          { value: 'custom', label: 'Custom' },
+        ]},
+        { key: 'separatorLength', label: 'Custom Length', type: 'unit', units: ['px', '%', 'em', 'rem'], dependsOn: { key: 'separatorLengthOption', value: 'custom' } },
         { key: 'separatorWeight', label: 'Weight', type: 'unit' },
-        { key: 'separatorLength', label: 'Length', type: 'unit', units: ['px', '%', 'em', 'rem'] },
         { key: 'separatorColor', label: 'Color', type: 'color' },
         { key: 'margin', label: 'Margin', type: 'spacing' },
         { key: 'padding', label: 'Padding', type: 'spacing' },
@@ -40,11 +46,13 @@ export const separatorElement: ElementConfig = {
   ],
   render: (element: TemplateElement) => {
     const isHorizontal = element.styles.separatorOrientation !== 'vertical';
+    const isFull = element.styles.separatorLengthOption !== 'custom';
+    const length = isFull ? (isHorizontal ? '100%' : '100%') : (element.styles.separatorLength ? `${element.styles.separatorLength.value}${element.styles.separatorLength.unit}` : '100%');
     return (
       <div
         style={{
-          width: isHorizontal ? (element.styles.separatorLength ? `${element.styles.separatorLength.value}${element.styles.separatorLength.unit}` : '100%') : undefined,
-          height: !isHorizontal ? (element.styles.separatorLength ? `${element.styles.separatorLength.value}${element.styles.separatorLength.unit}` : undefined) : undefined,
+          width: isHorizontal ? length : undefined,
+          height: !isHorizontal ? length : undefined,
           backgroundColor: element.styles.separatorColor || '#000000',
           [isHorizontal ? 'height' : 'width']: element.styles.separatorWeight ? `${element.styles.separatorWeight.value}${element.styles.separatorWeight.unit}` : '2px',
         }}

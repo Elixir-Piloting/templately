@@ -148,7 +148,9 @@ export function ElementHierarchy() {
     draggingElementId,
     setDraggingElement,
     dropTargetId,
-    setDropTarget
+    setDropTarget,
+    dragOverPosition,
+    setDragOverPosition
   } = useBuilderStore();
 
   const toggleExpanded = useCallback((id: string) => {
@@ -172,7 +174,8 @@ export function ElementHierarchy() {
   const handleDragEnd = useCallback(() => {
     setDraggingElement(null);
     setDropTarget(null);
-  }, [setDraggingElement, setDropTarget]);
+    setDragOverPosition(null);
+  }, [setDraggingElement, setDropTarget, setDragOverPosition]);
 
   const handleDrop = useCallback((e: React.DragEvent, targetId: string | null, position: 'before' | 'after' | 'inside') => {
     e.preventDefault();
@@ -214,20 +217,26 @@ export function ElementHierarchy() {
     
     if (isContainer && relX > 0.15 && relX < 0.85 && relY > 0.25 && relY < 0.75) {
       setDropTarget(elementId);
+      setDragOverPosition('inside');
     } else if (isContainer) {
       const pos = relY < 0.5 ? 'before' : 'after';
       setDropTarget(elementId);
+      setDragOverPosition(pos);
     } else {
       const pos = relY < 0.5 ? 'before' : 'after';
       setDropTarget(elementId);
+      setDragOverPosition(pos);
     }
-  }, [setDropTarget, template.elements, draggingElementId]);
+  }, [setDropTarget, setDragOverPosition, template.elements, draggingElementId]);
 
   const renderElement = (element: TemplateElement, depth: number = 0): React.ReactNode => {
     const isSelected = element.id === selectedElementId;
     const isHovered = element.id === hoveredElementId;
     const isDragging = element.id === draggingElementId;
     const isDropTarget = element.id === dropTargetId;
+    const isDropTargetBefore = isDropTarget && dragOverPosition === 'before';
+    const isDropTargetAfter = isDropTarget && dragOverPosition === 'after';
+    const isDropTargetInside = isDropTarget && dragOverPosition === 'inside';
     const isExpanded = expandedIds.has(element.id);
     const hasChildren = element.type === 'div' && element.children && element.children.length > 0;
     const canBeDropTarget = element.type === 'div';
@@ -237,7 +246,7 @@ export function ElementHierarchy() {
         <div
           className={`flex items-center gap-1 px-1 py-1 cursor-pointer text-sm rounded-sm transition-colors ${
             isSelected ? 'bg-primary text-primary-foreground' : isHovered ? 'bg-muted' : ''
-          } ${isDropTarget ? 'ring-2 ring-blue-500' : ''} ${isDragging ? 'opacity-50' : ''}`}
+          } ${isDropTargetBefore ? 'border-t-2 border-blue-500' : ''} ${isDropTargetAfter ? 'border-b-2 border-blue-500' : ''} ${isDropTargetInside ? 'ring-2 ring-blue-500 ring-inset bg-blue-500/10' : ''} ${isDragging ? 'opacity-50' : ''}`}
           style={{ paddingLeft: `${depth * 12 + 4}px` }}
           onClick={(e) => {
             e.stopPropagation();
@@ -251,24 +260,28 @@ export function ElementHierarchy() {
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (canBeDropTarget) {
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const relY = (e.clientY - rect.top) / rect.height;
+            const relX = (e.clientX - rect.left) / rect.width;
+            
+            if (canBeDropTarget && relX > 0.15 && relX < 0.85 && relY > 0.25 && relY < 0.75) {
               handleDragOver(e, element.id, 'inside');
             } else {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const midY = rect.top + rect.height / 2;
-              const position = e.clientY < midY ? 'before' : 'after';
+              const position = relY < 0.5 ? 'before' : 'after';
               handleDragOver(e, element.id, position);
             }
           }}
           onDrop={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (canBeDropTarget) {
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const relY = (e.clientY - rect.top) / rect.height;
+            const relX = (e.clientX - rect.left) / rect.width;
+            
+            if (canBeDropTarget && relX > 0.15 && relX < 0.85 && relY > 0.25 && relY < 0.75) {
               handleDrop(e, element.id, 'inside');
             } else {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const midY = rect.top + rect.height / 2;
-              const position = e.clientY < midY ? 'before' : 'after';
+              const position = relY < 0.5 ? 'before' : 'after';
               handleDrop(e, element.id, position);
             }
           }}

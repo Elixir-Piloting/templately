@@ -10,6 +10,7 @@ interface BuilderState {
   hoveredElementId: string | null;
   draggingElementId: string | null;
   dropTargetId: string | null;
+  dragOverPosition: 'before' | 'after' | 'inside' | null;
   setTemplate: (template: Template) => void;
   addElement: (type: ElementType, parentId?: string) => void;
   updateElement: (id: string, updates: Partial<TemplateElement>) => void;
@@ -18,6 +19,7 @@ interface BuilderState {
   setHoveredElement: (id: string | null) => void;
   setDraggingElement: (id: string | null) => void;
   setDropTarget: (id: string | null) => void;
+  setDragOverPosition: (position: 'before' | 'after' | 'inside' | null) => void;
   updatePage: (updates: Partial<Template['page']>) => void;
   updateLayout: (updates: Partial<Template['layout']>) => void;
   moveElement: (elementId: string, direction: 'up' | 'down') => void;
@@ -78,7 +80,9 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   hoveredElementId: null,
   draggingElementId: null,
   dropTargetId: null,
+  dragOverPosition: null,
   setTemplate: (template) => set({ template }),
+  setDragOverPosition: (position) => set({ dragOverPosition: position }),
   
   addElement: (type, parentId) =>
     set((state) => {

@@ -58,11 +58,12 @@ export function BuilderCanvas() {
     setDraggingElement,
     dropTargetId,
     setDropTarget,
+    dragOverPosition,
+    setDragOverPosition,
     moveElementInto,
     moveElementToIndex
   } = useBuilderStore();
   const [isDragOver, setIsDragOver] = useState(false);
-  const [dragOverPosition, setDragOverPosition] = useState<'before' | 'after' | 'inside' | null>(null);
 
   const pageWidth = template.page.width;
 

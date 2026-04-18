@@ -9,10 +9,10 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useBuilderStore } from '@/lib/store';
-import { Save, Download, Eye, Settings } from 'lucide-react';
+import { Save, Download, Eye, Settings, Plus } from 'lucide-react';
 
 export default function BuilderPage() {
-  const { template, setTemplate, updatePage } = useBuilderStore();
+  const { template, setTemplate, updatePage, selectElement } = useBuilderStore();
   const [templateName, setTemplateName] = useState(template.name);
   const [showPageSettings, setShowPageSettings] = useState(false);
 
@@ -71,6 +71,14 @@ export default function BuilderPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => selectElement(null)}
+              title="Add element"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
             <Button
               variant={showPageSettings ? "secondary" : "ghost"}
               size="sm"

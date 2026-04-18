@@ -8,6 +8,7 @@ export const headerElement: ElementConfig = {
   type: 'header',
   label: 'Header',
   icon: 'Type',
+  group: 'content',
   canContain: [],
   defaultContent: 'Header Text',
   defaultStyles: {

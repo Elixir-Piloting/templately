@@ -25,6 +25,7 @@ export interface ElementConfig {
   type: ElementType;
   label: string;
   icon: string;
+  group: 'content' | 'layout';
   canContain: ElementType[];
   defaultContent?: string;
   defaultStyles: Partial<TemplateElement['styles']>;

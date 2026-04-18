@@ -8,6 +8,7 @@ export const divElement: ElementConfig = {
   type: 'div',
   label: 'Div (Container)',
   icon: 'Square',
+  group: 'layout',
   canContain: ['header', 'paragraph', 'separator', 'div'],
   defaultContent: '',
   defaultStyles: {
