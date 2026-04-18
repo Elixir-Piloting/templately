@@ -298,13 +298,44 @@ export function BuilderCanvas() {
         <div
           className="flex-1 container"
           style={innerContainerStyle}
-          onDragOver={(e) => handleInnerDragOver(e, element.id)}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const relX = (e.clientX - rect.left) / rect.width;
+            const relY = (e.clientY - rect.top) / rect.height;
+            
+            // Only accept drop in strict center (35-65%)
+            if (relX > 0.35 && relX < 0.65 && relY > 0.35 && relY < 0.65) {
+              setDropTarget(element.id);
+              setDragOverPosition('inside');
+              setIsDragOver(true);
+            } else {
+              setDropTarget(null);
+              setDragOverPosition(null);
+            }
+          }}
           onDrop={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleDrop(e, element.id, 'inside');
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const relX = (e.clientX - rect.left) / rect.width;
+            const relY = (e.clientY - rect.top) / rect.height;
+            
+            // Only allow drop in strict center
+            if (relX > 0.35 && relX < 0.65 && relY > 0.35 && relY < 0.65) {
+              handleDrop(e, element.id, 'inside');
+            }
           }}
-          onDragLeave={handleInnerDragLeave}
+          onDragLeave={(e) => {
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
+              setDropTarget(null);
+              setDragOverPosition(null);
+            }
+          }}
         >
           {element.children && element.children.length > 0 ? (
             element.children.map(child => renderElement(child, true))
@@ -337,33 +368,37 @@ export function BuilderCanvas() {
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (element.type === 'div' && isInside) {
-              handleInnerDragOver(e, element.id);
-            } else if (element.type === 'div') {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const relY = (e.clientY - rect.top) / rect.height;
-              
-              // Strict center zone (30-70%) for inside, otherwise before/after
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const relY = (e.clientY - rect.top) / rect.height;
+            
+            if (element.type === 'div') {
+              // For divs: 30-70% Y = inside, <30% = before, >70% = after
               if (relY > 0.3 && relY < 0.7) {
-                handleInnerDragOver(e, element.id);
+                // Show inside indicator
+                setDropTarget(element.id);
+                setDragOverPosition('inside');
+                setIsDragOver(true);
               } else {
                 const position = relY <= 0.3 ? 'before' : 'after';
-                handleDragOver(e, element.id, position);
+                setDropTarget(element.id);
+                setDragOverPosition(position);
+                setIsDragOver(true);
               }
             } else {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const relY = (e.clientY - rect.top) / rect.height;
+              // For non-divs: <50% = before, >50% = after
               const position = relY <= 0.5 ? 'before' : 'after';
-              handleDragOver(e, element.id, position);
+              setDropTarget(element.id);
+              setDragOverPosition(position);
+              setIsDragOver(true);
             }
           }}
           onDrop={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const relY = (e.clientY - rect.top) / rect.height;
+            
             if (element.type === 'div') {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const relY = (e.clientY - rect.top) / rect.height;
-              
               if (relY > 0.3 && relY < 0.7) {
                 handleDrop(e, element.id, 'inside');
               } else {
@@ -371,8 +406,6 @@ export function BuilderCanvas() {
                 handleDrop(e, element.id, position);
               }
             } else {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              const relY = (e.clientY - rect.top) / rect.height;
               const position = relY <= 0.5 ? 'before' : 'after';
               handleDrop(e, element.id, position);
             }
